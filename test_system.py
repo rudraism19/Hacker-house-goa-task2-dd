@@ -24,6 +24,8 @@ class TestVoiceRAGSystem(unittest.TestCase):
         cls.orchestrator = ModelHarnessOrchestrator(
             cls.stt_engine, cls.vector_store, cls.chunk_engine
         )
+        # Warmup pipeline to eliminate cold-start module import latencies
+        cls.orchestrator.run_pipeline(VoiceRAGRequest(prompt_text="warmup", stt_provider="local", synthesizer_mode="local"))
 
     def test_chunking_strategies(self):
         """Test all 4 chunking strategies produce valid chunks with metadata."""
