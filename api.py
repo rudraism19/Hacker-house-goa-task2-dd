@@ -40,6 +40,8 @@ orchestrator = ModelHarnessOrchestrator(
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 @app.get("/", response_class=HTMLResponse)
+@app.get("/api", response_class=HTMLResponse)
+@app.get("/api.py", response_class=HTMLResponse)
 def index_landing_page():
     return """
     <!DOCTYPE html>
@@ -151,6 +153,7 @@ Content-Type: application/json
     """
 
 @app.get("/health")
+@app.get("/api/health")
 def health_check():
     return {
         "status": "online",
@@ -166,6 +169,7 @@ class TextQueryRequest(BaseModel):
     stt_provider: Optional[str] = "sarvam"
 
 @app.post("/query", response_model=Dict[str, Any])
+@app.post("/api/query", response_model=Dict[str, Any])
 def query_rag(req: TextQueryRequest):
     """
     Executes Voice RAG query (or text query) through STT, Guardrails, Retrieval, Harness, and Grounding.
@@ -181,6 +185,7 @@ def query_rag(req: TextQueryRequest):
     return res.model_dump()
 
 @app.post("/query/audio")
+@app.post("/api/query/audio")
 async def query_rag_audio(
     file: UploadFile = File(...),
     language_code: str = Form("hi-IN"),
@@ -205,6 +210,7 @@ async def query_rag_audio(
     return res.model_dump()
 
 @app.get("/chunking/compare")
+@app.get("/api/chunking/compare")
 def compare_chunking():
     """
     Returns comparative benchmarking analytics across all 4 chunking strategies.
@@ -212,6 +218,7 @@ def compare_chunking():
     return chunk_engine.compare_strategies(dataset[:20])
 
 @app.get("/benchmark")
+@app.get("/api/benchmark")
 def execute_benchmark(num_samples: int = 50, strategy: str = "fixed_overlap"):
     """
     Runs benchmark suite and returns P50, P70, P100 latency percentiles.
