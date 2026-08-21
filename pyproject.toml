@@ -1,2 +1,21 @@
+[project]
+name = "hacker-house-goa-task2-dd"
+version = "1.0.0"
+description = "Hacker House Goa Task #2: Sub-200ms Voice-Enabled RAG System"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24.0",
+    "pandas>=2.0.0",
+    "datasets>=2.14.0",
+    "requests>=2.30.0",
+    "pydantic>=2.0.0",
+    "fastapi>=0.100.0",
+    "uvicorn>=0.20.0",
+    "matplotlib>=3.5.0",
+    "streamlit>=1.30.0"
+]
+
 [tool.vercel]
 entrypoint = "api:app"
+
