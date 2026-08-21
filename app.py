@@ -541,22 +541,22 @@ with col_hero_right:
         active_strat = strategy_map.get(voice_mode, "semantic_boundary")
         chunk_engine.set_strategy(active_strat)
 
-    # Google Gemini Grounding Engine Configuration
-    with st.expander("✨ High-Accuracy Grounding Engine (Google Gemini API)", expanded=False):
-        current_gemini_key = os.getenv("GEMINI_API_KEY", "") or GEMINI_API_KEY
+    # Google Gemini Universal Answering & Grounding Engine Configuration
+    with st.expander("✨ Universal Answering & Grounding Engine (Google Gemini API)", expanded=False):
+        current_gemini_key = os.getenv("GEMINI_API_KEY", "") or getattr(config, "GEMINI_API_KEY", "")
         gemini_input_key = st.text_input(
             "Google Gemini API Key (Saved in .env):",
             value=current_gemini_key,
             type="password",
             placeholder="AIzaSy...",
-            help="Provides state-of-the-art grounded answer synthesis using Google Gemini 1.5 Flash."
+            help="Enables answering every question type (Grounded RAG + Open-Domain General Knowledge) using Google Gemini."
         )
         if gemini_input_key != current_gemini_key:
-            os.environ["GEMINI_API_KEY"] = gemini_input_key.strip()
+            config.save_env_variable("GEMINI_API_KEY", gemini_input_key.strip())
             st.rerun()
 
         if current_gemini_key:
-            st.markdown('<span style="color:#00FF88; font-family: \'JetBrains Mono\', monospace; font-size:0.8rem;">🟢 Google Gemini 1.5 Flash Active & Saved in .env</span>', unsafe_allow_html=True)
+            st.markdown('<span style="color:#00FF88; font-family: \'JetBrains Mono\', monospace; font-size:0.8rem;">🟢 Google Gemini Active (Universal Answering & Grounding Enabled)</span>', unsafe_allow_html=True)
         else:
             st.markdown('<span style="color:#FDB827; font-family: \'JetBrains Mono\', monospace; font-size:0.8rem;">🟡 Running in Fast Local Extractive Mode (Enter key above to enable Gemini)</span>', unsafe_allow_html=True)
 

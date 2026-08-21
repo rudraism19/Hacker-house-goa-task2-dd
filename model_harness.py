@@ -17,8 +17,9 @@ from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 import config
 TOP_K_RETRIEVAL = getattr(config, "TOP_K_RETRIEVAL", 3)
-GEMINI_MODEL = getattr(config, "GEMINI_MODEL", "gemini-1.5-flash")
-GEMINI_API_URL = getattr(config, "GEMINI_API_URL", "https://generativelanguage.googleapis.com/v1beta/models")
+GEMINI_MODEL = getattr(config, "GEMINI_MODEL", "gemini-3.5-flash-lite")
+GEMINI_CANDIDATE_MODELS = getattr(config, "GEMINI_CANDIDATE_MODELS", ["gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"])
+GEMINI_API_URL = getattr(config, "GEMINI_API_URL", "https://generativelanguage.googleapis.com/v1beta")
 from guardrails import InputGuardrail, GroundingHallucinationGuardrail, SafeRefusalHandler
 
 # --- Pydantic Data Schemas ---
@@ -98,81 +99,111 @@ class HarnessTools:
     @staticmethod
     def synthesize_answer_tool(query: str, retrieved_chunks: List[Dict[str, Any]], mode: str = "auto") -> Dict[str, Any]:
         """
-        Tool 3: High-Precision Answer Synthesizer.
-        Uses Google Gemini API (gemini-1.5-flash) for state-of-the-art grounded answer synthesis when GEMINI_API_KEY is available and mode != 'local'.
-        Gracefully falls back to extractive keyword/sentence matcher when offline, in local mode, or without API key.
+        Tool 3: High-Precision Universal Answer Synthesizer.
+        Uses Google Gemini API with candidate model fallback to answer every type of question:
+        - Grounded RAG Mode: When relevant passages exist in dataset, generates context-grounded answer with citations.
+        - Open-Domain General Knowledge Mode: When no relevant passages exist, Gemini provides direct answers to any domain (science, coding, math, general chat).
+        - Fast Local Extractive Engine: Zero-latency offline fallback.
         """
         t0 = time.perf_counter()
-        if not retrieved_chunks:
-            return {
-                "answer": "",
-                "citations": [],
-                "is_matched": False,
-                "confidence": 0.0,
-                "synthesizer": "None",
-                "latency_ms": round((time.perf_counter() - t0) * 1000.0, 2)
-            }
-
-        top_chunk = retrieved_chunks[0]
+        top_chunk = retrieved_chunks[0] if retrieved_chunks else {}
         raw_text = top_chunk.get("parent_text", "") or top_chunk.get("text", "")
         doc_id = top_chunk.get("doc_id", "doc_0")
         score = top_chunk.get("score", 0.0)
 
-        # --- OPTION A: Google Gemini API (Highest Accuracy & Grounding) ---
+        # --- OPTION A: Google Gemini API (Universal High Accuracy & Grounding) ---
         default_gemini_key = getattr(config, "GEMINI_API_KEY", "")
         gemini_api_key = os.getenv("GEMINI_API_KEY", "") or default_gemini_key
+
         if gemini_api_key and mode != "local":
-            try:
-                import requests
-                
+            has_relevant_context = bool(retrieved_chunks and score >= 0.28 and len(raw_text.strip()) > 10)
+            
+            if has_relevant_context:
                 context_passages = []
                 for idx, chunk in enumerate(retrieved_chunks[:3]):
                     c_text = chunk.get("parent_text", "") or chunk.get("text", "")
                     c_id = chunk.get("doc_id", f"doc_{idx+1}")
                     context_passages.append(f"[Document {idx+1} - ID: {c_id}]: {c_text}")
-                
                 context_str = "\n\n".join(context_passages)
+                
                 system_instruction = (
-                    "You are a grounded Voice RAG synthesizer for Hacker House Goa 2026.\n"
-                    "Answer the user query accurately, concisely (1-3 sentences), strictly based on the provided context below.\n"
-                    "If the context does not contain enough information to answer the question, reply with: "
-                    "'The provided context does not contain sufficient information to answer this question.'\n"
-                    "Do NOT extrapolate or invent facts not present in the context."
+                    "You are a helpful, knowledgeable, and accurate AI assistant for Hacker House Goa 2026.\n"
+                    "Answer the user's question directly, concisely (1-3 sentences), and accurately.\n"
+                    "If the provided context is relevant to the question, use it to ground your answer.\n"
+                    "If the provided context is NOT relevant or does not contain the answer, answer the question directly and accurately using your general knowledge without stating that context is missing."
                 )
-                prompt_content = f"{system_instruction}\n\nContext:\n{context_str}\n\nUser Question: {query}\n\nGrounded Answer:"
-                
-                api_endpoint = f"{GEMINI_API_URL}/{GEMINI_MODEL}:generateContent?key={gemini_api_key}"
-                payload = {
-                    "contents": [{"parts": [{"text": prompt_content}]}],
-                    "generationConfig": {
-                        "temperature": 0.1,
-                        "maxOutputTokens": 200
-                    }
-                }
-                
-                resp = requests.post(api_endpoint, json=payload, timeout=3.5)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    candidates = data.get("candidates", [])
-                    if candidates:
-                        parts = candidates[0].get("content", {}).get("parts", [])
-                        if parts and "text" in parts[0]:
-                            gemini_ans = parts[0]["text"].strip()
-                            if "insufficient information" not in gemini_ans.lower() and len(gemini_ans) > 5:
-                                citations = [f"Doc ID: {c.get('doc_id', f'doc_{i}')} | Relevance: {c.get('score', 0.0):.2f}" for i, c in enumerate(retrieved_chunks[:2])]
-                                return {
-                                    "answer": gemini_ans,
-                                    "citations": citations,
-                                    "is_matched": True,
-                                    "confidence": round(score, 2),
-                                    "synthesizer": f"Google Gemini ({GEMINI_MODEL})",
-                                    "latency_ms": round((time.perf_counter() - t0) * 1000.0, 2)
-                                }
-            except Exception:
-                # If Gemini API times out or fails, fallback seamlessly to fast extractive engine
-                pass
+                prompt_content = f"{system_instruction}\n\nContext:\n{context_str}\n\nUser Question: {query}\n\nAnswer:"
+                is_gen_knowledge = False
+            else:
+                system_instruction = (
+                    "You are a helpful, knowledgeable, and accurate AI assistant for Hacker House Goa 2026.\n"
+                    "Answer the user query directly, accurately, and concisely (1-3 sentences) in the same language as the query."
+                )
+                prompt_content = f"{system_instruction}\n\nUser Question: {query}\n\nAnswer:"
+                is_gen_knowledge = True
 
-        # --- OPTION B: Fast Local Extractive Synthesizer (Zero-Latency Offline Fallback) ---
+            payload = {
+                "contents": [{"parts": [{"text": prompt_content}]}],
+                "generationConfig": {
+                    "temperature": 0.2,
+                    "maxOutputTokens": 250
+                }
+            }
+
+            candidate_models = list(dict.fromkeys(GEMINI_CANDIDATE_MODELS))
+            for candidate_model in candidate_models:
+                try:
+                    clean_model_name = candidate_model.replace("models/", "")
+                    api_endpoint = f"{GEMINI_API_URL}/models/{clean_model_name}:generateContent?key={gemini_api_key}"
+                    resp = requests.post(api_endpoint, json=payload, timeout=4.5)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        candidates = data.get("candidates", [])
+                        if candidates:
+                            parts = candidates[0].get("content", {}).get("parts", [])
+                            if parts and "text" in parts[0]:
+                                gemini_ans = parts[0]["text"].strip()
+                                if gemini_ans:
+                                    context_blob = " ".join([c.get("parent_text", "") or c.get("text", "") for c in retrieved_chunks]).lower()
+                                    stopwords_check = {"what", "is", "the", "a", "an", "and", "or", "in", "of", "to", "with", "for", "that", "this", "city", "capital", "state", "about", "called", "known", "means", "document"}
+                                    answer_keywords = [w for w in re.findall(r'\w+', gemini_ans.lower()) if len(w) > 2 and w not in stopwords_check]
+                                    context_matches = sum(1 for w in answer_keywords if w in context_blob)
+                                    overlap_ratio = (context_matches / max(len(answer_keywords), 1))
+                                    used_context = bool(context_matches >= 2 and overlap_ratio >= 0.35 and score >= 0.40)
+
+                                    if used_context:
+                                        citations = [f"Doc ID: {c.get('doc_id', f'doc_{i}')} | Relevance: {c.get('score', 0.0):.2f}" for i, c in enumerate(retrieved_chunks[:2])]
+                                        synth_name = f"Google Gemini ({clean_model_name} - Grounded RAG)"
+                                        is_gen_knowledge = False
+                                    else:
+                                        citations = ["Google Gemini Knowledge Base (Direct Synthesis)"]
+                                        synth_name = f"Google Gemini ({clean_model_name} - General Knowledge)"
+                                        is_gen_knowledge = True
+
+                                    return {
+                                        "answer": gemini_ans,
+                                        "citations": citations,
+                                        "is_matched": True,
+                                        "is_general_knowledge": is_gen_knowledge,
+                                        "confidence": round(score if not is_gen_knowledge else 0.95, 2),
+                                        "synthesizer": synth_name,
+                                        "latency_ms": round((time.perf_counter() - t0) * 1000.0, 2)
+                                    }
+                except Exception:
+                    continue
+
+        # --- OPTION B: Fast Local Extractive Synthesizer (Offline Fallback) ---
+        if not retrieved_chunks:
+            return {
+                "answer": "",
+                "citations": [],
+                "is_matched": False,
+                "is_general_knowledge": False,
+                "confidence": 0.0,
+                "synthesizer": "Local Extractive (No Chunks)",
+                "latency_ms": round((time.perf_counter() - t0) * 1000.0, 2)
+            }
+
         clean_text = re.sub(r'\[.*?\]', '', raw_text).strip()
         sentences = [s.strip() for s in re.split(r'(?<=[.!?।\n])\s+', clean_text) if len(s.strip()) > 5]
         if not sentences:
@@ -200,6 +231,7 @@ class HarnessTools:
                 "answer": "",
                 "citations": [],
                 "is_matched": False,
+                "is_general_knowledge": False,
                 "confidence": 0.0,
                 "synthesizer": "Local Extractive (No Match)",
                 "latency_ms": round((time.perf_counter() - t0) * 1000.0, 2)
@@ -213,6 +245,7 @@ class HarnessTools:
             "answer": answer_text,
             "citations": citations,
             "is_matched": True,
+            "is_general_knowledge": False,
             "confidence": round(score, 2),
             "synthesizer": "Local Extractive Engine",
             "latency_ms": round(elapsed_ms, 2)
@@ -339,7 +372,13 @@ class ModelHarnessOrchestrator:
         # -------------------------------------------------------------
         t0 = time.perf_counter()
         context_texts = [c.get("text", "") for c in retrieved_chunks]
-        grounding_eval = self.grounding_guardrail.evaluate(raw_answer, context_texts, top_score)
+        is_gen_know = synth_out.get("is_general_knowledge", False)
+        grounding_eval = self.grounding_guardrail.evaluate(
+            raw_answer,
+            context_texts,
+            top_score,
+            is_general_knowledge=is_gen_know
+        )
         stage_latencies["grounding_guardrail_ms"] = grounding_eval.get("latency_ms", round((time.perf_counter() - t0) * 1000.0, 2))
 
         is_refused = False

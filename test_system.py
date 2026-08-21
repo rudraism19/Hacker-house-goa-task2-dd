@@ -91,6 +91,20 @@ class TestVoiceRAGSystem(unittest.TestCase):
         self.assertFalse(res.is_refused)
         self.assertGreater(len(res.answer), 0)
 
+    def test_gemini_general_knowledge_open_domain(self):
+        """Test Gemini integration answers out-of-dataset open-domain queries."""
+        req = VoiceRAGRequest(
+            prompt_text="What is the capital of France?",
+            language_code="en-IN",
+            chunking_strategy="fixed_overlap",
+            stt_provider="local",
+            synthesizer_mode="auto"
+        )
+        res = self.orchestrator.run_pipeline(req)
+        self.assertFalse(res.is_refused)
+        self.assertIn("paris", res.answer.lower())
+        self.assertGreater(res.grounding_score, 0.5)
+
     def test_latency_analytics_percentiles(self):
         """Test latency analytics calculates P50, P70, P100 correctly."""
         latencies = [100.0, 150.0, 180.0, 190.0, 200.0]
@@ -98,5 +112,13 @@ class TestVoiceRAGSystem(unittest.TestCase):
         self.assertEqual(stats["p50"], 180.0)
         self.assertEqual(stats["p100"], 200.0)
 
+    def test_env_persistence(self):
+        """Test save_env_variable successfully updates config and env."""
+        import config
+        config.save_env_variable("TEST_PERSIST_KEY", "value_123")
+        import os
+        self.assertEqual(os.getenv("TEST_PERSIST_KEY"), "value_123")
+
 if __name__ == "__main__":
     unittest.main()
+

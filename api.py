@@ -692,14 +692,14 @@ def index_landing_page():
 
                     <!-- Expandable Gemini API Key -->
                     <details class="hh-expander" id="gemini-expander">
-                        <summary>✨ High-Accuracy Grounding Engine (Google Gemini API)</summary>
+                        <summary>✨ Universal Question Answering & Grounding Engine (Google Gemini API)</summary>
                         <div class="hh-expander-body">
-                            <label style="font-size:0.75rem; color:#9CA3AF; display:block; margin-bottom:6px;">Google Gemini API Key (Optional high-precision synthesis):</label>
+                            <label style="font-size:0.75rem; color:#9CA3AF; display:block; margin-bottom:6px;">Google Gemini API Key (Enables answering every question type + RAG grounding):</label>
                             <div style="display:flex; gap:8px;">
                                 <input type="password" id="gemini-key-input" placeholder="AIzaSy..." class="gemini-input" />
                                 <button class="save-key-btn" onclick="saveGeminiKey()">Save</button>
                             </div>
-                            <div id="gemini-status" style="margin-top:6px; font-size:0.78rem; font-family:'JetBrains Mono'; color:#00FF88;">🟢 Local Extractive Mode Active (or set Gemini key above)</div>
+                            <div id="gemini-status" style="margin-top:6px; font-size:0.78rem; font-family:'JetBrains Mono'; color:#00FF88;">🟢 Google Gemini Active (Saved in .env)</div>
                         </div>
                     </details>
 
@@ -1032,7 +1032,7 @@ def index_landing_page():
                         body: JSON.stringify({ key: key })
                     });
                     const data = await res.json();
-                    document.getElementById('gemini-status').innerHTML = '🟢 Google Gemini 1.5 Flash Active';
+                    document.getElementById('gemini-status').innerHTML = '🟢 Google Gemini Active (Universal Answering & Grounding Enabled)';
                 } catch(e) {
                     alert('Could not save key: ' + e);
                 }
@@ -1247,8 +1247,8 @@ class GeminiKeyRequest(BaseModel):
 @app.post("/set-gemini-key")
 @app.post("/api/set-gemini-key")
 def set_gemini_key(req: GeminiKeyRequest):
-    os.environ["GEMINI_API_KEY"] = req.key.strip()
-    return {"status": "success", "message": "Gemini API key updated"}
+    config.save_env_variable("GEMINI_API_KEY", req.key.strip())
+    return {"status": "success", "message": "Gemini API key updated and persisted"}
 
 class TextQueryRequest(BaseModel):
     query_text: str

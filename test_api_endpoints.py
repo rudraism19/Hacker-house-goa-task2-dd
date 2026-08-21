@@ -1,4 +1,5 @@
 import sys
+import config
 from fastapi.testclient import TestClient
 from api import app
 
@@ -40,10 +41,21 @@ def test_api():
     print(f"[PASS] GET /benchmark: 200 OK (P50: {bench_data['overall_latency']['p50']}ms, SLA: {bench_data['sla_pass_rate_percent']}%)")
 
     # 5. Test POST /set-gemini-key
+    orig_key = config.GEMINI_API_KEY
     res_key = client.post("/set-gemini-key", json={"key": "test-key-123"})
     assert res_key.status_code == 200
     assert res_key.json()["status"] == "success"
     print("[PASS] POST /set-gemini-key: 200 OK")
+    if orig_key:
+        config.save_env_variable("GEMINI_API_KEY", orig_key)
+
+    # 6. Test POST /query for Open-Domain Query
+    res_open = client.post("/query", json={"query_text": "What is the capital of France?", "language_code": "en-IN"})
+    assert res_open.status_code == 200
+    open_data = res_open.json()
+    assert "paris" in open_data["answer"].lower()
+    assert open_data["is_refused"] is False
+    print(f"[PASS] POST /query (Open-Domain): 200 OK -> '{open_data['answer']}' ({open_data['synthesizer']})")
 
 if __name__ == "__main__":
     test_api()

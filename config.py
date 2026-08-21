@@ -37,10 +37,42 @@ SARVAM_STT_URL = "https://api.sarvam.ai/speech-to-text"
 ELEVENLABS_STT_URL = "https://api.elevenlabs.io/v1/speech-to-text"
 DEFAULT_STT_LANG = "en-IN"  # Default English STT language code ('en-IN', 'hi-IN')
 
-# LLM Synthesis (Google Gemini API for High Accuracy)
+# LLM Synthesis (Google Gemini API for Universal Answering & High Accuracy)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
-GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models"
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+GEMINI_CANDIDATE_MODELS = [
+    os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite"),
+    "gemini-3.5-flash-lite",
+    "gemini-3.5-flash",
+    "gemini-3.1-flash-lite",
+    "gemini-flash-latest"
+]
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta"
+
+def save_env_variable(key: str, value: str):
+    """
+    Persistently updates an environment variable in os.environ and the .env file.
+    """
+    os.environ[key] = value
+    env_lines = []
+    found = False
+    if ENV_FILE.exists():
+        with open(ENV_FILE, "r", encoding="utf-8") as f:
+            for line in f:
+                stripped = line.strip()
+                if stripped and not stripped.startswith("#") and "=" in stripped:
+                    k, v = stripped.split("=", 1)
+                    if k.strip() == key:
+                        env_lines.append(f"{key}={value}\n")
+                        found = True
+                        continue
+                env_lines.append(line if line.endswith("\n") else line + "\n")
+    if not found:
+        env_lines.append(f"{key}={value}\n")
+    
+    with open(ENV_FILE, "w", encoding="utf-8") as f:
+        f.writelines(env_lines)
+
 
 # Vector DB & Embeddings
 EMBEDDING_DIM = 256
