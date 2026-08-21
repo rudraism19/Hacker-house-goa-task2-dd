@@ -158,12 +158,72 @@ class MSMARCOXIBackendLoader:
                 "lang": "en"
             },
             {
+                "id": "en_corp_01",
+                "query": "What is a corporation?",
+                "answers": ["A corporation is an organization or company authorized by law to act as a single legal entity separate from its owners."],
+                "passages": [
+                    {"is_selected": 1, "passage_text": "A corporation is an organization—usually a group of people or a company—authorized by the state to act as a single legal entity and recognized as such in law. A corporation is owned by shareholders who elect a board of directors to oversee the organization's activities, granting limited liability protection to its owners."},
+                    {"is_selected": 0, "passage_text": "A sole proprietorship is an unincorporated enterprise owned and operated by a single individual with unlimited personal liability."}
+                ],
+                "lang": "en"
+            },
+            {
+                "id": "en_cfs_01",
+                "query": "What is cash flow statement?",
+                "answers": ["A cash flow statement is a financial statement that summarizes the amount of cash entering and leaving a company."],
+                "passages": [
+                    {"is_selected": 1, "passage_text": "A cash flow statement is a key financial statement that measures how well a company manages its cash position, detailing cash generated across operating activities, investing activities, and financing activities."},
+                    {"is_selected": 0, "passage_text": "An income statement reports a company's financial performance in terms of net profit or loss over a specific accounting period."}
+                ],
+                "lang": "en"
+            },
+            {
+                "id": "en_pipe_01",
+                "query": "Cost to replace converter with test pipe",
+                "answers": ["The cost to replace a catalytic converter with a test pipe typically ranges from $100 to $300."],
+                "passages": [
+                    {"is_selected": 1, "passage_text": "The cost to replace a catalytic converter with a test pipe typically ranges from $100 to $300 including labor and aftermarket exhaust tubing, though test pipes may not be legal for road use in all jurisdictions."},
+                    {"is_selected": 0, "passage_text": "Replacing an OEM catalytic converter with an original factory part can cost between $1,000 and $2,500."}
+                ],
+                "lang": "en"
+            },
+            {
                 "id": "hi_01",
                 "query": "भारत की राजधानी क्या है?",
                 "answers": ["भारत की राजधानी नई दिल्ली है।"],
                 "passages": [
                     {"is_selected": 1, "passage_text": "नई दिल्ली भारत गणराज्य की राजधानी और केंद्र शासित प्रदेश है। यह भारत सरकार की तीन शाखाओं का केंद्र है।"},
                     {"is_selected": 0, "passage_text": "मुंबई भारत का सबसे बड़ा शहर और वित्तीय राजधानी है। यह महाराष्ट्र राज्य की राजधानी है।"}
+                ],
+                "lang": "hi"
+            },
+            {
+                "id": "hi_corp_01",
+                "query": "कॉर्पोरेशन क्या है?",
+                "answers": ["कॉर्पोरेशन एक कानूनी इकाई है जो अपने स्वामियों (शेयरधारकों) से अलग होती है और कानून की दृष्टि में एक व्यक्ति के रूप में कार्य करती है।"],
+                "passages": [
+                    {"is_selected": 1, "passage_text": "कॉर्पोरेशन एक संगठन या कंपनी है जिसे कानून द्वारा एक अलग कानूनी इकाई के रूप में मान्यता दी जाती है। कॉर्पोरेशन के पास अनुबंध करने, ऋण लेने, संपत्ति खरीदने और कर चुकाने का कानूनी अधिकार होता है। इसके शेयरधारकों को सीमित देयता (Limited Liability) का लाभ मिलता है।"},
+                    {"is_selected": 0, "passage_text": "एकल स्वामित्व में एक ही व्यक्ति व्यवसाय का एकमात्र स्वामी होता है और उसकी देनदारी असीमित होती है।"}
+                ],
+                "lang": "hi"
+            },
+            {
+                "id": "hi_cfs_01",
+                "query": "कैश फ्लो स्टेटमेंट क्या है?",
+                "answers": ["कैश फ्लो स्टेटमेंट एक वित्तीय विवरण है जो किसी व्यवसाय में आने और जाने वाले नकद प्रवाह को सारांशित करता है।"],
+                "passages": [
+                    {"is_selected": 1, "passage_text": "कैश फ्लो स्टेटमेंट एक महत्वपूर्ण वित्तीय दस्तावेज है जो परिचालन गतिविधियों, निवेश गतिविधियों और वित्तपोषण गतिविधियों से उत्पन्न होने वाले नकद प्रवाह (Cash Inflow & Outflow) को दर्शाता है।"},
+                    {"is_selected": 0, "passage_text": "बैलेंस शीट किसी निश्चित तिथि पर कंपनी की संपत्ति, देनदारियों और शेयरधारक इक्विटी का विवरण प्रस्तुत करती है।"}
+                ],
+                "lang": "hi"
+            },
+            {
+                "id": "hi_pipe_01",
+                "query": "परिवर्तक को परीक्षण पाइप से बदलने की लागत",
+                "answers": ["परिवर्तक (कैटेलिटिक कन्वर्टर) को परीक्षण पाइप से बदलने की लागत आमतौर पर $100 से $300 (लगभग ₹8,000 से ₹25,000) के बीच होती है।"],
+                "passages": [
+                    {"is_selected": 1, "passage_text": "परिवर्तक को परीक्षण पाइप (Test Pipe) से बदलने की लागत श्रम और फिटिंग सामग्री सहित आमतौर पर $100 से $300 (लगभग ₹8,000 से ₹25,000) के बीच आती है। हालांकि टेस्ट पाइप लगाना कई स्थानों पर उत्सर्जन नियमों के तहत सड़कों पर मान्य नहीं होता है।"},
+                    {"is_selected": 0, "passage_text": "नया मूल कैटेलिटिक कनवर्टर लगवाने की लागत $1,000 से $2,500 तक हो सकती है।"}
                 ],
                 "lang": "hi"
             },

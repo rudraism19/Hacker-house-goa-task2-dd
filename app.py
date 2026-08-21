@@ -450,8 +450,9 @@ st.markdown("""
 # -------------------------------------------------------------------
 @st.cache_resource(show_spinner=False)
 def initialize_hh_rag():
-    loader = MSMARCOXIBackendLoader(lang="en", max_samples=300)
-    dataset = loader.load_dataset()
+    loader_en = MSMARCOXIBackendLoader(lang="en", max_samples=300)
+    loader_hi = MSMARCOXIBackendLoader(lang="hi", max_samples=300)
+    dataset = loader_en.load_dataset() + loader_hi.load_dataset()
     chunk_engine = MultiStrategyChunkingEngine(strategy_name="semantic_boundary")
     chunks = chunk_engine.chunk_documents(dataset)
     vector_store = VectorStore()

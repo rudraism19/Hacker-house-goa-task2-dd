@@ -20,9 +20,10 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Global State Engine
-loader = MSMARCOXIBackendLoader(lang="hi", max_samples=200)
-dataset = loader.load_dataset()
+# Global State Engine (Bilingual Multilingual Corpus: English + Hindi)
+loader_en = MSMARCOXIBackendLoader(lang="en", max_samples=300)
+loader_hi = MSMARCOXIBackendLoader(lang="hi", max_samples=300)
+dataset = loader_en.load_dataset() + loader_hi.load_dataset()
 
 chunk_engine = MultiStrategyChunkingEngine(strategy_name="fixed_overlap")
 chunks = chunk_engine.chunk_documents(dataset)
