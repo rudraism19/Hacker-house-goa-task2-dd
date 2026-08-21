@@ -8,7 +8,10 @@ from pathlib import Path
 # Base Paths
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
-DATA_DIR.mkdir(exist_ok=True)
+try:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+except Exception:
+    pass
 
 # Auto-load persistent .env file if present
 ENV_FILE = BASE_DIR / ".env"

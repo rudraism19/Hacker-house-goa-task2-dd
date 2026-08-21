@@ -44,8 +44,11 @@ class MSMARCOXIBackendLoader:
                 records = self._generate_synthetic_msmarco()
 
         if records:
-            with open(self.cache_file, "w", encoding="utf-8") as f:
-                json.dump(records, f, ensure_ascii=False, indent=2)
+            try:
+                with open(self.cache_file, "w", encoding="utf-8") as f:
+                    json.dump(records, f, ensure_ascii=False, indent=2)
+            except Exception:
+                pass
 
         return records[:self.max_samples]
 
