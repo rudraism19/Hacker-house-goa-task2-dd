@@ -37,6 +37,119 @@ orchestrator = ModelHarnessOrchestrator(
     chunking_engine=chunk_engine
 )
 
+from fastapi.responses import HTMLResponse, RedirectResponse
+
+@app.get("/", response_class=HTMLResponse)
+def index_landing_page():
+    return """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>HACKER गोवा HOUSE // Voice RAG API</title>
+        <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+        <style>
+            body {
+                background: #062b19;
+                color: #F8F9FA;
+                font-family: 'Space Grotesk', sans-serif;
+                margin: 0; padding: 40px 20px;
+                display: flex; justify-content: center; align-items: center; min-height: 80vh;
+            }
+            .card {
+                background: #0b1f1a;
+                border: 1px solid rgba(255,255,255,0.1);
+                border-radius: 20px;
+                padding: 40px;
+                max-width: 650px;
+                box-shadow: 0 16px 45px rgba(0,0,0,0.5);
+                text-align: center;
+            }
+            .logo {
+                font-family: 'Cinzel', serif;
+                font-size: 2rem;
+                font-weight: 900;
+                color: #FDB827;
+                letter-spacing: 2px;
+                margin-bottom: 10px;
+            }
+            .badge {
+                background: #E53E3E;
+                color: #FFF;
+                font-size: 0.6em;
+                padding: 2px 6px;
+                border-radius: 4px;
+                vertical-align: middle;
+            }
+            .tag {
+                display: inline-block;
+                font-family: 'JetBrains Mono', monospace;
+                font-size: 0.75rem;
+                color: #00FF88;
+                background: rgba(0,255,136,0.1);
+                border: 1px solid rgba(0,255,136,0.3);
+                padding: 4px 12px;
+                border-radius: 12px;
+                margin-bottom: 20px;
+            }
+            .btn {
+                display: inline-block;
+                background: #FDB827;
+                color: #000;
+                font-weight: 700;
+                text-decoration: none;
+                padding: 12px 24px;
+                border-radius: 8px;
+                margin: 8px;
+                font-size: 0.95rem;
+                transition: all 0.2s;
+            }
+            .btn:hover { background: #FFAA00; transform: translateY(-2px); }
+            .btn-outline {
+                background: transparent;
+                color: #FDB827;
+                border: 1px solid #FDB827;
+            }
+            .btn-outline:hover { background: rgba(253,184,39,0.1); }
+            pre {
+                background: #061713;
+                border: 1px solid rgba(255,255,255,0.06);
+                padding: 15px;
+                border-radius: 8px;
+                font-family: 'JetBrains Mono', monospace;
+                font-size: 0.8rem;
+                text-align: left;
+                overflow-x: auto;
+                color: #A7F3D0;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <div class="logo">HACKER <span class="badge">गोवा</span> HOUSE</div>
+            <div class="tag">● API ACTIVE // SUB-200ms VOICE RAG // TASK #2</div>
+            <p style="color: #9CA3AF; line-height: 1.6;">
+                Production Voice-Enabled Retrieval-Augmented Generation REST API for Hacker House Goa 2026.
+            </p>
+            <div>
+                <a href="/docs" class="btn">🚀 Interactive Swagger Docs</a>
+                <a href="/health" class="btn btn-outline">⚡ Health Check</a>
+            </div>
+            <br/>
+            <pre>POST /query
+Content-Type: application/json
+
+{
+  "query_text": "What is a corporation?",
+  "language_code": "en-IN",
+  "chunking_strategy": "semantic_boundary"
+}</pre>
+        </div>
+    </body>
+    </html>
+    """
+
 @app.get("/health")
 def health_check():
     return {
