@@ -679,8 +679,13 @@ def index_landing_page():
 
                 <!-- AI Response Bubble -->
                 <div id="ai-bubble" class="chat-bubble-ai">
-                    <span id="ai-badge" style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 700; color: #00FF88; background: rgba(0, 255, 136, 0.1); padding: 3px 10px; border-radius: 6px; border: 1px solid rgba(0, 255, 136, 0.3);">🤖 GROUNDED ANSWER</span><br/>
-                    <div id="ai-answer-text" style="font-size: 1.05rem; line-height: 1.6; margin-top: 10px; color: #F8F9FA;"></div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <span id="ai-badge" style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 700; color: #00FF88; background: rgba(0, 255, 136, 0.1); padding: 3px 10px; border-radius: 6px; border: 1px solid rgba(0, 255, 136, 0.3);">🤖 GROUNDED ANSWER</span>
+                        <button id="tts-btn" onclick="toggleAudioNarration()" style="background: rgba(253, 184, 39, 0.15); border: 1px solid rgba(253, 184, 39, 0.4); color: #FDB827; padding: 4px 14px; border-radius: 20px; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.78rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;">
+                            <span id="tts-icon">🔊</span> <span id="tts-label">Listen</span>
+                        </button>
+                    </div>
+                    <div id="ai-answer-text" style="font-size: 1.05rem; line-height: 1.6; margin-top: 6px; color: #F8F9FA;"></div>
                 </div>
 
                 <!-- Citations -->
@@ -1056,7 +1061,87 @@ def index_landing_page():
                 const tweet = encodeURIComponent(`Just benchmarked our sub-200ms Voice-Enabled RAG pipeline for @hhgoa 2026 (Task #2)! ⚡ Latency: ${data.total_latency_ms}ms | Grounding: ${Math.round(data.grounding_score * 100)}% #RAGInGoa #HHGoa2026`);
                 document.getElementById('share-x-btn').href = `https://twitter.com/intent/tweet?text=${tweet}`;
 
+                // Automatically speak / narrate the answer out loud
+                if (data.answer) {
+                    narrateText(data.answer);
+                }
+
                 document.getElementById('response-container').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+
+            let currentUtterance = null;
+            let isNarrating = false;
+
+            function narrateText(text) {
+                if (!('speechSynthesis' in window)) return;
+                window.speechSynthesis.cancel();
+                if (!text || text.trim() === '') return;
+
+                const clean = text.replace(/\\[Document \\d+.*?\\]/g, '').replace(/Doc ID: \\S+/g, '').trim();
+                currentUtterance = new SpeechSynthesisUtterance(clean);
+                const isHindi = /[\\u0900-\\u097F]/.test(clean);
+                currentUtterance.lang = isHindi ? 'hi-IN' : 'en-IN';
+                currentUtterance.rate = 1.0;
+                currentUtterance.pitch = 1.0;
+
+                const ttsBtn = document.getElementById('tts-btn');
+                const ttsIcon = document.getElementById('tts-icon');
+                const ttsLabel = document.getElementById('tts-label');
+
+                currentUtterance.onstart = function() {
+                    isNarrating = true;
+                    if (ttsIcon) ttsIcon.innerText = '⏹️';
+                    if (ttsLabel) ttsLabel.innerText = 'Stop';
+                    if (ttsBtn) {
+                        ttsBtn.style.background = 'rgba(239, 68, 68, 0.2)';
+                        ttsBtn.style.borderColor = '#EF4444';
+                        ttsBtn.style.color = '#EF4444';
+                    }
+                };
+
+                currentUtterance.onend = function() {
+                    isNarrating = false;
+                    if (ttsIcon) ttsIcon.innerText = '🔊';
+                    if (ttsLabel) ttsLabel.innerText = 'Listen';
+                    if (ttsBtn) {
+                        ttsBtn.style.background = 'rgba(253, 184, 39, 0.15)';
+                        ttsBtn.style.borderColor = 'rgba(253, 184, 39, 0.4)';
+                        ttsBtn.style.color = '#FDB827';
+                    }
+                };
+
+                currentUtterance.onerror = function() {
+                    isNarrating = false;
+                    if (ttsIcon) ttsIcon.innerText = '🔊';
+                    if (ttsLabel) ttsLabel.innerText = 'Listen';
+                    if (ttsBtn) {
+                        ttsBtn.style.background = 'rgba(253, 184, 39, 0.15)';
+                        ttsBtn.style.borderColor = 'rgba(253, 184, 39, 0.4)';
+                        ttsBtn.style.color = '#FDB827';
+                    }
+                };
+
+                window.speechSynthesis.speak(currentUtterance);
+            }
+
+            function toggleAudioNarration() {
+                if (isNarrating) {
+                    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+                    isNarrating = false;
+                    const ttsBtn = document.getElementById('tts-btn');
+                    const ttsIcon = document.getElementById('tts-icon');
+                    const ttsLabel = document.getElementById('tts-label');
+                    if (ttsIcon) ttsIcon.innerText = '🔊';
+                    if (ttsLabel) ttsLabel.innerText = 'Listen';
+                    if (ttsBtn) {
+                        ttsBtn.style.background = 'rgba(253, 184, 39, 0.15)';
+                        ttsBtn.style.borderColor = 'rgba(253, 184, 39, 0.4)';
+                        ttsBtn.style.color = '#FDB827';
+                    }
+                } else {
+                    const text = document.getElementById('ai-answer-text').innerText;
+                    narrateText(text);
+                }
             }
 
             function switchTab(idx) {

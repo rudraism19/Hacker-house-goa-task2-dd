@@ -562,6 +562,33 @@ if query_to_run or has_audio:
             for c in response.citations:
                 st.markdown(f"- 📄 `{c}`")
 
+        # Auto-speech narration
+        clean_speech = response.answer.replace('"', '\\"').replace('\n', ' ').replace("'", "\\'")
+        is_hi = any('\u0900' <= char <= '\u097F' for char in clean_speech)
+        speech_lang = "hi-IN" if is_hi else "en-IN"
+        st.components.v1.html(f"""
+        <div style="margin-top: 5px;">
+            <button onclick="
+                if ('speechSynthesis' in window) {{
+                    window.speechSynthesis.cancel();
+                    const u = new SpeechSynthesisUtterance('{clean_speech}');
+                    u.lang = '{speech_lang}';
+                    window.speechSynthesis.speak(u);
+                }}
+            " style="background: rgba(253, 184, 39, 0.15); border: 1px solid rgba(253, 184, 39, 0.4); color: #FDB827; padding: 4px 14px; border-radius: 20px; font-family: 'sans-serif'; font-weight: 700; font-size: 0.78rem; cursor: pointer;">
+                🔊 Replay Voice Narration
+            </button>
+        </div>
+        <script>
+            if ('speechSynthesis' in window) {{
+                window.speechSynthesis.cancel();
+                const utter = new SpeechSynthesisUtterance('{clean_speech}');
+                utter.lang = '{speech_lang}';
+                window.speechSynthesis.speak(utter);
+            }}
+        </script>
+        """, height=40)
+
     st.markdown("<hr style='border-color: rgba(255,255,255,0.08); margin: 20px 0;'>", unsafe_allow_html=True)
 
     # Telemetry Grid
