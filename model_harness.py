@@ -3,7 +3,7 @@ Model Harness & Orchestration Engine for Voice RAG System
 
 Provides:
 1. Structured Input/Output Schemas (Pydantic)
-2. Tool Calling Engine (Query Refinement, Metadata Filter, High-Precision Entity Synthesizer)
+2. Tool Calling Engine (Query Refinement, Metadata Filter, Universal Synthesis with Grounding)
 3. Strict Grounding Verification (Never outputs irrelevant passages)
 4. Retries with Exponential Backoff and Fallback Error Recovery
 """
@@ -17,12 +17,12 @@ from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 import config
 TOP_K_RETRIEVAL = getattr(config, "TOP_K_RETRIEVAL", 3)
+GEMINI_API_KEY = getattr(config, "GEMINI_API_KEY", "")
+GEMINI_CANDIDATE_MODELS = getattr(config, "GEMINI_CANDIDATE_MODELS", ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-flash-latest"])
+GEMINI_API_URL = getattr(config, "GEMINI_API_URL", "https://generativelanguage.googleapis.com/v1beta")
 GROQ_API_KEY = getattr(config, "GROQ_API_KEY", "")
 GROQ_API_URL = getattr(config, "GROQ_API_URL", "https://api.groq.com/openai/v1/chat/completions")
 GROQ_CANDIDATE_MODELS = getattr(config, "GROQ_CANDIDATE_MODELS", ["openai/gpt-oss-20b", "groq/compound-mini", "qwen/qwen3.6-27b"])
-GEMINI_API_KEY = getattr(config, "GEMINI_API_KEY", "")
-GEMINI_CANDIDATE_MODELS = getattr(config, "GEMINI_CANDIDATE_MODELS", ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-flash-latest"])
-GEMINI_API_URL = getattr(config, "GEMINI_API_URL", "https://generativelanguage.googleapis.com/v1beta")
 from guardrails import InputGuardrail, GroundingHallucinationGuardrail, SafeRefusalHandler
 
 # --- Pydantic Data Schemas ---
@@ -33,8 +33,8 @@ class VoiceRAGRequest(BaseModel):
     prompt_text: Optional[str] = Field(default=None, description="Direct text input or STT hint")
     language_code: str = Field(default="en-IN", description="Language code (e.g., en-IN, hi-IN)")
     chunking_strategy: str = Field(default="fixed_overlap", description="Chunking strategy to use")
-    stt_provider: str = Field(default="sarvam", description="STT provider ('groq', 'sarvam', 'elevenlabs', 'local')")
-    synthesizer_mode: str = Field(default="auto", description="Synthesizer mode ('auto', 'groq', 'gemini', 'local')")
+    stt_provider: str = Field(default="sarvam", description="STT provider ('sarvam', 'groq', 'elevenlabs', 'local')")
+    synthesizer_mode: str = Field(default="auto", description="Synthesizer mode ('auto', 'gemini', 'groq', 'local')")
 
 class ToolCallLog(BaseModel):
     tool_name: str
@@ -104,9 +104,9 @@ class HarnessTools:
         """
         Tool 3: High-Precision Universal Answer Synthesizer.
         Priority:
-        1. Groq Ultra-Fast API (Sub-150ms LLM Synthesis & RAG Grounding)
-        2. Google Gemini API (Secondary High-Accuracy LLM Fallback)
-        3. Fast Local Extractive Engine (Zero-latency Offline Fallback)
+        1. Google Gemini API (Universal High Accuracy, Grounding & Open-Domain Answering)
+        2. Groq Ultra-Fast API (High-Speed LLM Fallback)
+        3. Fast Local Extractive Engine (Zero-Latency Offline Fallback)
         """
         t0 = time.perf_counter()
         top_chunk = retrieved_chunks[0] if retrieved_chunks else {}
@@ -114,8 +114,8 @@ class HarnessTools:
         doc_id = top_chunk.get("doc_id", "doc_0")
         score = top_chunk.get("score", 0.0)
 
-        groq_api_key = os.getenv("GROQ_API_KEY", "") or getattr(config, "GROQ_API_KEY", "")
         gemini_api_key = os.getenv("GEMINI_API_KEY", "") or getattr(config, "GEMINI_API_KEY", "")
+        groq_api_key = os.getenv("GROQ_API_KEY", "") or getattr(config, "GROQ_API_KEY", "")
 
         has_relevant_context = bool(retrieved_chunks and score >= 0.28 and len(raw_text.strip()) > 10)
 
@@ -144,60 +144,7 @@ class HarnessTools:
             user_content = f"User Question: {query}\n\nAnswer:"
             is_gen_knowledge = True
 
-        # --- OPTION 1: Groq Ultra-Fast API ---
-        if groq_api_key and mode in ("auto", "groq"):
-            groq_models = list(dict.fromkeys(GROQ_CANDIDATE_MODELS))
-            for model_id in groq_models:
-                try:
-                    payload = {
-                        "model": model_id,
-                        "messages": [
-                            {"role": "system", "content": system_instruction},
-                            {"role": "user", "content": user_content}
-                        ],
-                        "temperature": 0.2,
-                        "max_tokens": 200
-                    }
-                    headers = {
-                        "Authorization": f"Bearer {groq_api_key}",
-                        "Content-Type": "application/json"
-                    }
-                    resp = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=4.0)
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        choices = data.get("choices", [])
-                        if choices:
-                            ans_text = choices[0].get("message", {}).get("content", "").strip()
-                            if ans_text:
-                                context_blob = " ".join([c.get("parent_text", "") or c.get("text", "") for c in retrieved_chunks]).lower()
-                                stopwords_check = {"what", "is", "the", "a", "an", "and", "or", "in", "of", "to", "with", "for", "that", "this", "city", "capital", "state", "about", "called", "known", "means", "document"}
-                                answer_keywords = [w for w in re.findall(r'\w+', ans_text.lower()) if len(w) > 2 and w not in stopwords_check]
-                                context_matches = sum(1 for w in answer_keywords if w in context_blob)
-                                overlap_ratio = (context_matches / max(len(answer_keywords), 1))
-                                used_context = bool(context_matches >= 2 and overlap_ratio >= 0.35 and score >= 0.35)
-
-                                if used_context:
-                                    citations = [f"Doc ID: {c.get('doc_id', f'doc_{i}')} | Relevance: {c.get('score', 0.0):.2f}" for i, c in enumerate(retrieved_chunks[:2])]
-                                    synth_name = f"Groq ({model_id} - Grounded RAG)"
-                                    is_gk = False
-                                else:
-                                    citations = ["Groq Knowledge Base (Direct Synthesis)"]
-                                    synth_name = f"Groq ({model_id} - General Knowledge)"
-                                    is_gk = True
-
-                                return {
-                                    "answer": ans_text,
-                                    "citations": citations,
-                                    "is_matched": True,
-                                    "is_general_knowledge": is_gk,
-                                    "confidence": round(score if not is_gk else 0.95, 2),
-                                    "synthesizer": synth_name,
-                                    "latency_ms": round((time.perf_counter() - t0) * 1000.0, 2)
-                                }
-                except Exception:
-                    continue
-
-        # --- OPTION 2: Google Gemini API (Secondary Fallback) ---
+        # --- OPTION 1: Google Gemini API (Universal High Accuracy & Grounding) ---
         if gemini_api_key and mode in ("auto", "gemini"):
             gemini_models = list(dict.fromkeys(GEMINI_CANDIDATE_MODELS))
             gemini_prompt = f"{system_instruction}\n\n{user_content}"
@@ -247,6 +194,59 @@ class HarnessTools:
                                         "synthesizer": synth_name,
                                         "latency_ms": round((time.perf_counter() - t0) * 1000.0, 2)
                                     }
+                except Exception:
+                    continue
+
+        # --- OPTION 2: Groq Ultra-Fast API (Secondary Fallback) ---
+        if groq_api_key and mode in ("auto", "groq"):
+            groq_models = list(dict.fromkeys(GROQ_CANDIDATE_MODELS))
+            for model_id in groq_models:
+                try:
+                    payload = {
+                        "model": model_id,
+                        "messages": [
+                            {"role": "system", "content": system_instruction},
+                            {"role": "user", "content": user_content}
+                        ],
+                        "temperature": 0.2,
+                        "max_tokens": 200
+                    }
+                    headers = {
+                        "Authorization": f"Bearer {groq_api_key}",
+                        "Content-Type": "application/json"
+                    }
+                    resp = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=4.0)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        choices = data.get("choices", [])
+                        if choices:
+                            ans_text = choices[0].get("message", {}).get("content", "").strip()
+                            if ans_text:
+                                context_blob = " ".join([c.get("parent_text", "") or c.get("text", "") for c in retrieved_chunks]).lower()
+                                stopwords_check = {"what", "is", "the", "a", "an", "and", "or", "in", "of", "to", "with", "for", "that", "this", "city", "capital", "state", "about", "called", "known", "means", "document"}
+                                answer_keywords = [w for w in re.findall(r'\w+', ans_text.lower()) if len(w) > 2 and w not in stopwords_check]
+                                context_matches = sum(1 for w in answer_keywords if w in context_blob)
+                                overlap_ratio = (context_matches / max(len(answer_keywords), 1))
+                                used_context = bool(context_matches >= 2 and overlap_ratio >= 0.35 and score >= 0.35)
+
+                                if used_context:
+                                    citations = [f"Doc ID: {c.get('doc_id', f'doc_{i}')} | Relevance: {c.get('score', 0.0):.2f}" for i, c in enumerate(retrieved_chunks[:2])]
+                                    synth_name = f"Groq ({model_id} - Grounded RAG)"
+                                    is_gk = False
+                                else:
+                                    citations = ["Groq Knowledge Base (Direct Synthesis)"]
+                                    synth_name = f"Groq ({model_id} - General Knowledge)"
+                                    is_gk = True
+
+                                return {
+                                    "answer": ans_text,
+                                    "citations": citations,
+                                    "is_matched": True,
+                                    "is_general_knowledge": is_gk,
+                                    "confidence": round(score if not is_gk else 0.95, 2),
+                                    "synthesizer": synth_name,
+                                    "latency_ms": round((time.perf_counter() - t0) * 1000.0, 2)
+                                }
                 except Exception:
                     continue
 

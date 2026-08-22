@@ -39,7 +39,18 @@ ELEVENLABS_STT_URL = "https://api.elevenlabs.io/v1/speech-to-text"
 GROQ_AUDIO_URL = "https://api.groq.com/openai/v1/audio/transcriptions"
 DEFAULT_STT_LANG = "en-IN"
 
-# Groq Ultra-Fast LLM Synthesis Configuration
+# Primary LLM Synthesis: Google Gemini API (Universal Answering & High Grounding)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+GEMINI_CANDIDATE_MODELS = [
+    os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
+    "gemini-3.6-flash",
+    "gemini-3.5-flash",
+    "gemini-flash-latest"
+]
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta"
+
+# Groq LLM Synthesis Configuration (Fast Secondary Alternative)
 GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
 GROQ_CANDIDATE_MODELS = [
     os.getenv("GROQ_MODEL", "openai/gpt-oss-20b"),
@@ -49,18 +60,6 @@ GROQ_CANDIDATE_MODELS = [
     "openai/gpt-oss-120b"
 ]
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-
-# Google Gemini API Configuration (Secondary Fallback)
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-GEMINI_CANDIDATE_MODELS = [
-    os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
-    "gemini-2.5-flash",
-    "gemini-2.0-flash",
-    "gemini-1.5-flash",
-    "gemini-flash-latest"
-]
-GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta"
 
 def save_env_variable(key: str, value: str):
     """
