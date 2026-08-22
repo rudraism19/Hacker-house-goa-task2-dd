@@ -11,7 +11,7 @@ from typing import List, Dict, Any, Tuple, Optional
 from config import EMBEDDING_DIM, TOP_K_RETRIEVAL
 from chunking_engine import Chunk
 
-# Indic & English Stopwords for High-Precision Entity Extraction
+# Indic, English & Hinglish Stopwords for High-Precision Entity Extraction
 EN_STOPWORDS = {
     "is", "the", "a", "an", "and", "or", "in", "of", "to", "for", "with", "that", "this",
     "what", "how", "who", "where", "which", "are", "tell", "me", "about", "define", "explain",
@@ -20,11 +20,37 @@ EN_STOPWORDS = {
 
 HI_STOPWORDS = {
     "क्या", "है", "हैं", "का", "की", "के", "में", "और", "से", "को", "पर", "बताएं", "बताइए",
-    "किसे", "कहते", "कौन", "सा", "सी", "से", "होते", "होती", "होता", "लागत", "अर्थ", "मतलब",
+    "किसे", "कहते", "कौन", "सा", "सी", "होते", "होती", "होता", "लागत", "अर्थ", "मतलब",
     "बारे", "कृपया", "मुझे", "जानना", "एक", "यह", "वह"
 }
 
-ALL_STOPWORDS = EN_STOPWORDS | HI_STOPWORDS
+HINGLISH_STOPWORDS = {
+    "main", "hum", "tum", "aap", "ek", "do", "ka", "ki", "ke", "ko", "se", "me", "mein", "par",
+    "kya", "hai", "hain", "hun", "hoon", "tha", "thi", "the", "hota", "hoti", "hote",
+    "kitna", "kitni", "kitne", "kaun", "kaunsa", "kaunsi", "kaise", "kese", "kyun", "kyu",
+    "kaha", "kahan", "kab", "kis", "kisko", "kisse", "kiske", "liye", "batao", "bataiye",
+    "bata", "btao", "btaiye", "student", "please", "tell", "say", "know", "janna",
+    "chahiye", "karo", "bhi", "wala", "wali", "wale", "kuch", "apna", "apni", "apne"
+}
+
+ALL_STOPWORDS = EN_STOPWORDS | HI_STOPWORDS | HINGLISH_STOPWORDS
+
+# Cross-Lingual Concept & Acronym Synonym Expansions for Sub-Millisecond Retrieval
+SYNONYM_MAP = {
+    "cs": ["cse", "computer science", "कंप्यूटर साइंस", "सीएसई", "computer science and engineering"],
+    "cse": ["cs", "computer science", "कंप्यूटर साइंस", "सीएसई"],
+    "dsa": ["data structures", "algorithms", "डेटा स्ट्रक्चर", "एल्गोरिदम"],
+    "os": ["operating systems", "ऑपरेटिंग सिस्टम"],
+    "dbms": ["database", "डेटाबेस मैनेजमेंट सिस्टम"],
+    "cn": ["computer networks", "कंप्यूटर नेटवर्क"],
+    "ai": ["artificial intelligence", "आर्टिफिशियल इंटेलिजेंस"],
+    "subjects": ["subject", "विषय", "सब्जेक्ट", "पाठ्यक्रम", "curriculum"],
+    "subject": ["subjects", "विषय", "सब्जेक्ट", "पाठ्यक्रम"],
+    "capital": ["राजधानी"],
+    "corporation": ["कॉर्पोरेशन", "कंपनी"],
+    "photosynthesis": ["प्रकाश संश्लेषण"],
+    "cash flow": ["कैश फ्लो", "कैश फ्लो स्टेटमेंट"]
+}
 
 class MultilingualSemanticEmbedder:
     """
@@ -63,6 +89,17 @@ class MultilingualSemanticEmbedder:
                 h_w &= 0xFFFFFFFF
             idx_w = h_w % self.dim
             vec[idx_w] += tf * weight
+
+            # 2-grams and 3-grams for short acronyms & subwords (e.g. cs, ai, os, cse)
+            if len(word) >= 2:
+                for i in range(len(word) - 1):
+                    bi = word[i:i+2]
+                    h_b = 2166136261
+                    for c in bi:
+                        h_b = (h_b ^ ord(c)) * 16777619
+                        h_b &= 0xFFFFFFFF
+                    idx_b = h_b % self.dim
+                    vec[idx_b] += tf * 0.8
 
             # Subword 3-grams
             if len(word) >= 3:
@@ -141,10 +178,19 @@ class VectorStore:
 
         # Keyword Overlap & Multilingual Definition Alignment
         clean_q = re.sub(r'[^\w\s\u0900-\u097F]', ' ', query.lower())
-        q_words = [w for w in clean_q.split() if len(w) > 1]
+        q_words = [w for w in clean_q.split() if len(w) > 0]
         content_q_words = [w for w in q_words if w not in ALL_STOPWORDS]
+        if not content_q_words:
+            content_q_words = q_words
 
-        # Extract target entity (e.g. 'cse subjects' or 'database' or 'कॉर्पोरेशन' or 'प्रकाश संश्लेषण')
+        # Expand query words with multilingual synonyms
+        expanded_keywords = set(content_q_words)
+        for w in content_q_words:
+            if w in SYNONYM_MAP:
+                for syn in SYNONYM_MAP[w]:
+                    expanded_keywords.add(syn.lower())
+
+        # Extract target entity
         entity = " ".join(content_q_words).strip()
 
         hybrid_scores = dense_scores.copy()
@@ -154,8 +200,11 @@ class VectorStore:
                 
                 # Content words match count & overlap ratio
                 matches = sum(1 for w in content_q_words if w in chunk_text_lower)
-                overlap_ratio = matches / len(content_q_words)
-                hybrid_scores[idx] += (overlap_ratio * 0.45)
+                # Check synonym matches
+                syn_matches = sum(1 for syn in expanded_keywords if syn in chunk_text_lower)
+                
+                overlap_ratio = max(matches, syn_matches) / max(len(content_q_words), 1)
+                hybrid_scores[idx] += (overlap_ratio * 0.55)
 
                 # English Definition Alignment Boost: e.g. "A database is...", "Computer Science... covers"
                 if entity:
@@ -174,6 +223,11 @@ class VectorStore:
                     ]
                     if any(pat in chunk_text_lower for pat in hi_patterns):
                         hybrid_scores[idx] += 0.65
+
+                # Specific subject pattern boost only if query mentions subjects
+                if any(w in expanded_keywords for w in ["subject", "subjects", "विषय", "पाठ्यक्रम"]):
+                    if any(pat in chunk_text_lower for pat in ["core subjects", "मुख्य विषय", "पाठ्यक्रम"]):
+                        hybrid_scores[idx] += 0.45
 
         # Top k index sorting
         k = min(top_k, len(hybrid_scores))

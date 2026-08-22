@@ -41,23 +41,24 @@ DEFAULT_STT_LANG = "en-IN"
 
 # Primary LLM Synthesis: Google Gemini API (Universal Answering & High Grounding)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 GEMINI_CANDIDATE_MODELS = [
-    os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
-    "gemini-3.6-flash",
-    "gemini-3.5-flash",
-    "gemini-flash-latest"
+    os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-flash-latest",
+    "gemini-3.1-flash-lite"
 ]
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta"
 
 # Groq LLM Synthesis Configuration (Fast Secondary Alternative)
-GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "groq/compound-mini")
 GROQ_CANDIDATE_MODELS = [
-    os.getenv("GROQ_MODEL", "openai/gpt-oss-20b"),
-    "openai/gpt-oss-20b",
+    os.getenv("GROQ_MODEL", "groq/compound-mini"),
     "groq/compound-mini",
-    "qwen/qwen3.6-27b",
-    "openai/gpt-oss-120b"
+    "openai/gpt-oss-20b",
+    "allam-2-7b",
+    "qwen/qwen3.6-27b"
 ]
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
