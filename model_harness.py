@@ -130,7 +130,7 @@ class HarnessTools:
             
             system_instruction = (
                 "You are an AI assistant for Voice RAG.\n"
-                "Answer the user's question directly, concisely (1-3 sentences), and accurately.\n"
+                "Answer the user question completely and accurately in 1-3 full, grammatically complete sentences. Never cut off or leave an incomplete thought.\n"
                 "If the provided context is relevant to the question, use it to ground your answer.\n"
                 "If the provided context is NOT relevant, answer directly and accurately using your general knowledge."
             )
@@ -139,7 +139,7 @@ class HarnessTools:
         else:
             system_instruction = (
                 "You are an AI assistant for Voice RAG.\n"
-                "Answer the user query directly, accurately, and concisely (1-3 sentences) in the same language as the query."
+                "Answer the user query completely, accurately, and clearly in 1-3 full sentences in the same language as the query. Never cut off your answer."
             )
             user_content = f"User Question: {query}\n\nAnswer:"
             is_gen_knowledge = True
@@ -152,7 +152,7 @@ class HarnessTools:
                 "contents": [{"parts": [{"text": gemini_prompt}]}],
                 "generationConfig": {
                     "temperature": 0.2,
-                    "maxOutputTokens": 200
+                    "maxOutputTokens": 1024
                 }
             }
 
@@ -160,15 +160,16 @@ class HarnessTools:
                 try:
                     clean_model_name = candidate_model.replace("models/", "")
                     api_endpoint = f"{GEMINI_API_URL}/models/{clean_model_name}:generateContent?key={gemini_api_key}"
-                    resp = requests.post(api_endpoint, json=payload, timeout=4.0)
+                    resp = requests.post(api_endpoint, json=payload, timeout=5.0)
                     if resp.status_code == 200:
                         data = resp.json()
                         candidates = data.get("candidates", [])
                         if candidates:
+                            finish_reason = candidates[0].get("finishReason", "")
                             parts = candidates[0].get("content", {}).get("parts", [])
-                            if parts and "text" in parts[0]:
+                            if parts and "text" in parts[0] and finish_reason != "MAX_TOKENS":
                                 gemini_ans = parts[0]["text"].strip()
-                                if gemini_ans:
+                                if gemini_ans and len(gemini_ans) > 15:
                                     context_blob = " ".join([c.get("parent_text", "") or c.get("text", "") for c in retrieved_chunks]).lower()
                                     stopwords_check = {"what", "is", "the", "a", "an", "and", "or", "in", "of", "to", "with", "for", "that", "this", "city", "capital", "state", "about", "called", "known", "means", "document"}
                                     answer_keywords = [w for w in re.findall(r'\w+', gemini_ans.lower()) if len(w) > 2 and w not in stopwords_check]
@@ -209,7 +210,7 @@ class HarnessTools:
                             {"role": "user", "content": user_content}
                         ],
                         "temperature": 0.2,
-                        "max_tokens": 200
+                        "max_tokens": 512
                     }
                     headers = {
                         "Authorization": f"Bearer {groq_api_key}",
