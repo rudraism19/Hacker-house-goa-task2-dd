@@ -564,15 +564,26 @@ if query_to_run or has_audio:
 
         # Auto-speech narration
         clean_speech = response.answer.replace('"', '\\"').replace('\n', ' ').replace("'", "\\'")
-        is_hi = any('\u0900' <= char <= '\u097F' for char in clean_speech)
-        speech_lang = "hi-IN" if is_hi else "en-IN"
         st.components.v1.html(f"""
         <div style="margin-top: 5px;">
             <button onclick="
                 if ('speechSynthesis' in window) {{
                     window.speechSynthesis.cancel();
+                    function getLang(t) {{
+                        if (/[\u0980-\u09FF]/.test(t)) return 'bn-IN';
+                        if (/[\u0B80-\u0BFF]/.test(t)) return 'ta-IN';
+                        if (/[\u0C00-\u0C7F]/.test(t)) return 'te-IN';
+                        if (/[\u0C80-\u0CFF]/.test(t)) return 'kn-IN';
+                        if (/[\u0D00-\u0D7F]/.test(t)) return 'ml-IN';
+                        if (/[\u0A80-\u0AFF]/.test(t)) return 'gu-IN';
+                        if (/[\u0A00-\u0A7F]/.test(t)) return 'pa-IN';
+                        if (/[\u0B00-\u0B7F]/.test(t)) return 'or-IN';
+                        if (/[\u0600-\u06FF]/.test(t)) return 'ur-IN';
+                        if (/[\u0900-\u097F]/.test(t)) return 'hi-IN';
+                        return 'en-IN';
+                    }}
                     const u = new SpeechSynthesisUtterance('{clean_speech}');
-                    u.lang = '{speech_lang}';
+                    u.lang = getLang('{clean_speech}');
                     window.speechSynthesis.speak(u);
                 }}
             " style="background: rgba(253, 184, 39, 0.15); border: 1px solid rgba(253, 184, 39, 0.4); color: #FDB827; padding: 4px 14px; border-radius: 20px; font-family: 'sans-serif'; font-weight: 700; font-size: 0.78rem; cursor: pointer;">
@@ -582,8 +593,21 @@ if query_to_run or has_audio:
         <script>
             if ('speechSynthesis' in window) {{
                 window.speechSynthesis.cancel();
+                function getLang(t) {{
+                    if (/[\u0980-\u09FF]/.test(t)) return 'bn-IN';
+                    if (/[\u0B80-\u0BFF]/.test(t)) return 'ta-IN';
+                    if (/[\u0C00-\u0C7F]/.test(t)) return 'te-IN';
+                    if (/[\u0C80-\u0CFF]/.test(t)) return 'kn-IN';
+                    if (/[\u0D00-\u0D7F]/.test(t)) return 'ml-IN';
+                    if (/[\u0A80-\u0AFF]/.test(t)) return 'gu-IN';
+                    if (/[\u0A00-\u0A7F]/.test(t)) return 'pa-IN';
+                    if (/[\u0B00-\u0B7F]/.test(t)) return 'or-IN';
+                    if (/[\u0600-\u06FF]/.test(t)) return 'ur-IN';
+                    if (/[\u0900-\u097F]/.test(t)) return 'hi-IN';
+                    return 'en-IN';
+                }}
                 const utter = new SpeechSynthesisUtterance('{clean_speech}');
-                utter.lang = '{speech_lang}';
+                utter.lang = getLang('{clean_speech}');
                 window.speechSynthesis.speak(utter);
             }}
         </script>

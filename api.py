@@ -947,13 +947,26 @@ def index_landing_page():
                 if (e.key === 'Enter') submitTextQuery();
             }
 
+            function detectLanguage(text) {
+                if (/[\u0980-\u09FF]/.test(text)) return 'bn-IN'; // Bengali / Assamese
+                if (/[\u0B80-\u0BFF]/.test(text)) return 'ta-IN'; // Tamil
+                if (/[\u0C00-\u0C7F]/.test(text)) return 'te-IN'; // Telugu
+                if (/[\u0C80-\u0CFF]/.test(text)) return 'kn-IN'; // Kannada
+                if (/[\u0D00-\u0D7F]/.test(text)) return 'ml-IN'; // Malayalam
+                if (/[\u0A80-\u0AFF]/.test(text)) return 'gu-IN'; // Gujarati
+                if (/[\u0A00-\u0A7F]/.test(text)) return 'pa-IN'; // Punjabi (Gurmukhi)
+                if (/[\u0B00-\u0B7F]/.test(text)) return 'or-IN'; // Odia
+                if (/[\u0600-\u06FF]/.test(text)) return 'ur-IN'; // Urdu
+                if (/[\u0900-\u097F]/.test(text)) return 'hi-IN'; // Hindi / Marathi / Sanskrit
+                return 'en-IN';
+            }
+
             async function submitTextQuery() {
                 const query = document.getElementById('query-input').value.trim();
                 if (!query) return;
 
                 const strategy = document.getElementById('voice-mode-select').value;
-                const isHindi = /[\\u0900-\\u097F]/.test(query);
-                const langCode = isHindi ? 'hi-IN' : 'en-IN';
+                const langCode = detectLanguage(query);
 
                 const responseContainer = document.getElementById('response-container');
                 responseContainer.style.display = 'block';
@@ -1079,8 +1092,7 @@ def index_landing_page():
 
                 const clean = text.replace(/\\[Document \\d+.*?\\]/g, '').replace(/Doc ID: \\S+/g, '').trim();
                 currentUtterance = new SpeechSynthesisUtterance(clean);
-                const isHindi = /[\\u0900-\\u097F]/.test(clean);
-                currentUtterance.lang = isHindi ? 'hi-IN' : 'en-IN';
+                currentUtterance.lang = detectLanguage(clean);
                 currentUtterance.rate = 1.0;
                 currentUtterance.pitch = 1.0;
 
