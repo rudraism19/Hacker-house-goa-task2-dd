@@ -82,8 +82,11 @@ def save_env_variable(key: str, value: str):
     if not found:
         env_lines.append(f"{key}={value}\n")
     
-    with open(ENV_FILE, "w", encoding="utf-8") as f:
-        f.writelines(env_lines)
+    try:
+        with open(ENV_FILE, "w", encoding="utf-8") as f:
+            f.writelines(env_lines)
+    except Exception:
+        pass
 
 # Vector DB & Embeddings
 EMBEDDING_DIM = 256
