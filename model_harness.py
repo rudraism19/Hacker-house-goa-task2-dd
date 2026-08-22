@@ -17,8 +17,11 @@ from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 import config
 TOP_K_RETRIEVAL = getattr(config, "TOP_K_RETRIEVAL", 3)
-GEMINI_MODEL = getattr(config, "GEMINI_MODEL", "gemini-3.5-flash-lite")
-GEMINI_CANDIDATE_MODELS = getattr(config, "GEMINI_CANDIDATE_MODELS", ["gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"])
+GROQ_API_KEY = getattr(config, "GROQ_API_KEY", "")
+GROQ_API_URL = getattr(config, "GROQ_API_URL", "https://api.groq.com/openai/v1/chat/completions")
+GROQ_CANDIDATE_MODELS = getattr(config, "GROQ_CANDIDATE_MODELS", ["openai/gpt-oss-20b", "groq/compound-mini", "qwen/qwen3.6-27b"])
+GEMINI_API_KEY = getattr(config, "GEMINI_API_KEY", "")
+GEMINI_CANDIDATE_MODELS = getattr(config, "GEMINI_CANDIDATE_MODELS", ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-flash-latest"])
 GEMINI_API_URL = getattr(config, "GEMINI_API_URL", "https://generativelanguage.googleapis.com/v1beta")
 from guardrails import InputGuardrail, GroundingHallucinationGuardrail, SafeRefusalHandler
 
@@ -30,8 +33,8 @@ class VoiceRAGRequest(BaseModel):
     prompt_text: Optional[str] = Field(default=None, description="Direct text input or STT hint")
     language_code: str = Field(default="en-IN", description="Language code (e.g., en-IN, hi-IN)")
     chunking_strategy: str = Field(default="fixed_overlap", description="Chunking strategy to use")
-    stt_provider: str = Field(default="sarvam", description="STT provider ('sarvam', 'elevenlabs', 'local')")
-    synthesizer_mode: str = Field(default="auto", description="Synthesizer mode ('auto', 'gemini', 'local')")
+    stt_provider: str = Field(default="sarvam", description="STT provider ('groq', 'sarvam', 'elevenlabs', 'local')")
+    synthesizer_mode: str = Field(default="auto", description="Synthesizer mode ('auto', 'groq', 'gemini', 'local')")
 
 class ToolCallLog(BaseModel):
     tool_name: str
@@ -100,10 +103,10 @@ class HarnessTools:
     def synthesize_answer_tool(query: str, retrieved_chunks: List[Dict[str, Any]], mode: str = "auto") -> Dict[str, Any]:
         """
         Tool 3: High-Precision Universal Answer Synthesizer.
-        Uses Google Gemini API with candidate model fallback to answer every type of question:
-        - Grounded RAG Mode: When relevant passages exist in dataset, generates context-grounded answer with citations.
-        - Open-Domain General Knowledge Mode: When no relevant passages exist, Gemini provides direct answers to any domain (science, coding, math, general chat).
-        - Fast Local Extractive Engine: Zero-latency offline fallback.
+        Priority:
+        1. Groq Ultra-Fast API (Sub-150ms LLM Synthesis & RAG Grounding)
+        2. Google Gemini API (Secondary High-Accuracy LLM Fallback)
+        3. Fast Local Extractive Engine (Zero-latency Offline Fallback)
         """
         t0 = time.perf_counter()
         top_chunk = retrieved_chunks[0] if retrieved_chunks else {}
@@ -111,51 +114,106 @@ class HarnessTools:
         doc_id = top_chunk.get("doc_id", "doc_0")
         score = top_chunk.get("score", 0.0)
 
-        # --- OPTION A: Google Gemini API (Universal High Accuracy & Grounding) ---
-        default_gemini_key = getattr(config, "GEMINI_API_KEY", "")
-        gemini_api_key = os.getenv("GEMINI_API_KEY", "") or default_gemini_key
+        groq_api_key = os.getenv("GROQ_API_KEY", "") or getattr(config, "GROQ_API_KEY", "")
+        gemini_api_key = os.getenv("GEMINI_API_KEY", "") or getattr(config, "GEMINI_API_KEY", "")
 
-        if gemini_api_key and mode != "local":
-            has_relevant_context = bool(retrieved_chunks and score >= 0.28 and len(raw_text.strip()) > 10)
+        has_relevant_context = bool(retrieved_chunks and score >= 0.28 and len(raw_text.strip()) > 10)
+
+        # Build context prompt
+        if has_relevant_context:
+            context_passages = []
+            for idx, chunk in enumerate(retrieved_chunks[:3]):
+                c_text = chunk.get("parent_text", "") or chunk.get("text", "")
+                c_id = chunk.get("doc_id", f"doc_{idx+1}")
+                context_passages.append(f"[Document {idx+1} - ID: {c_id}]: {c_text}")
+            context_str = "\n\n".join(context_passages)
             
-            if has_relevant_context:
-                context_passages = []
-                for idx, chunk in enumerate(retrieved_chunks[:3]):
-                    c_text = chunk.get("parent_text", "") or chunk.get("text", "")
-                    c_id = chunk.get("doc_id", f"doc_{idx+1}")
-                    context_passages.append(f"[Document {idx+1} - ID: {c_id}]: {c_text}")
-                context_str = "\n\n".join(context_passages)
-                
-                system_instruction = (
-                    "You are a helpful, knowledgeable, and accurate AI assistant for Hacker House Goa 2026.\n"
-                    "Answer the user's question directly, concisely (1-3 sentences), and accurately.\n"
-                    "If the provided context is relevant to the question, use it to ground your answer.\n"
-                    "If the provided context is NOT relevant or does not contain the answer, answer the question directly and accurately using your general knowledge without stating that context is missing."
-                )
-                prompt_content = f"{system_instruction}\n\nContext:\n{context_str}\n\nUser Question: {query}\n\nAnswer:"
-                is_gen_knowledge = False
-            else:
-                system_instruction = (
-                    "You are a helpful, knowledgeable, and accurate AI assistant for Hacker House Goa 2026.\n"
-                    "Answer the user query directly, accurately, and concisely (1-3 sentences) in the same language as the query."
-                )
-                prompt_content = f"{system_instruction}\n\nUser Question: {query}\n\nAnswer:"
-                is_gen_knowledge = True
+            system_instruction = (
+                "You are an AI assistant for Voice RAG.\n"
+                "Answer the user's question directly, concisely (1-3 sentences), and accurately.\n"
+                "If the provided context is relevant to the question, use it to ground your answer.\n"
+                "If the provided context is NOT relevant, answer directly and accurately using your general knowledge."
+            )
+            user_content = f"Context:\n{context_str}\n\nUser Question: {query}\n\nAnswer:"
+            is_gen_knowledge = False
+        else:
+            system_instruction = (
+                "You are an AI assistant for Voice RAG.\n"
+                "Answer the user query directly, accurately, and concisely (1-3 sentences) in the same language as the query."
+            )
+            user_content = f"User Question: {query}\n\nAnswer:"
+            is_gen_knowledge = True
 
+        # --- OPTION 1: Groq Ultra-Fast API ---
+        if groq_api_key and mode in ("auto", "groq"):
+            groq_models = list(dict.fromkeys(GROQ_CANDIDATE_MODELS))
+            for model_id in groq_models:
+                try:
+                    payload = {
+                        "model": model_id,
+                        "messages": [
+                            {"role": "system", "content": system_instruction},
+                            {"role": "user", "content": user_content}
+                        ],
+                        "temperature": 0.2,
+                        "max_tokens": 200
+                    }
+                    headers = {
+                        "Authorization": f"Bearer {groq_api_key}",
+                        "Content-Type": "application/json"
+                    }
+                    resp = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=4.0)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        choices = data.get("choices", [])
+                        if choices:
+                            ans_text = choices[0].get("message", {}).get("content", "").strip()
+                            if ans_text:
+                                context_blob = " ".join([c.get("parent_text", "") or c.get("text", "") for c in retrieved_chunks]).lower()
+                                stopwords_check = {"what", "is", "the", "a", "an", "and", "or", "in", "of", "to", "with", "for", "that", "this", "city", "capital", "state", "about", "called", "known", "means", "document"}
+                                answer_keywords = [w for w in re.findall(r'\w+', ans_text.lower()) if len(w) > 2 and w not in stopwords_check]
+                                context_matches = sum(1 for w in answer_keywords if w in context_blob)
+                                overlap_ratio = (context_matches / max(len(answer_keywords), 1))
+                                used_context = bool(context_matches >= 2 and overlap_ratio >= 0.35 and score >= 0.35)
+
+                                if used_context:
+                                    citations = [f"Doc ID: {c.get('doc_id', f'doc_{i}')} | Relevance: {c.get('score', 0.0):.2f}" for i, c in enumerate(retrieved_chunks[:2])]
+                                    synth_name = f"Groq ({model_id} - Grounded RAG)"
+                                    is_gk = False
+                                else:
+                                    citations = ["Groq Knowledge Base (Direct Synthesis)"]
+                                    synth_name = f"Groq ({model_id} - General Knowledge)"
+                                    is_gk = True
+
+                                return {
+                                    "answer": ans_text,
+                                    "citations": citations,
+                                    "is_matched": True,
+                                    "is_general_knowledge": is_gk,
+                                    "confidence": round(score if not is_gk else 0.95, 2),
+                                    "synthesizer": synth_name,
+                                    "latency_ms": round((time.perf_counter() - t0) * 1000.0, 2)
+                                }
+                except Exception:
+                    continue
+
+        # --- OPTION 2: Google Gemini API (Secondary Fallback) ---
+        if gemini_api_key and mode in ("auto", "gemini"):
+            gemini_models = list(dict.fromkeys(GEMINI_CANDIDATE_MODELS))
+            gemini_prompt = f"{system_instruction}\n\n{user_content}"
             payload = {
-                "contents": [{"parts": [{"text": prompt_content}]}],
+                "contents": [{"parts": [{"text": gemini_prompt}]}],
                 "generationConfig": {
                     "temperature": 0.2,
-                    "maxOutputTokens": 250
+                    "maxOutputTokens": 200
                 }
             }
 
-            candidate_models = list(dict.fromkeys(GEMINI_CANDIDATE_MODELS))
-            for candidate_model in candidate_models:
+            for candidate_model in gemini_models:
                 try:
                     clean_model_name = candidate_model.replace("models/", "")
                     api_endpoint = f"{GEMINI_API_URL}/models/{clean_model_name}:generateContent?key={gemini_api_key}"
-                    resp = requests.post(api_endpoint, json=payload, timeout=4.5)
+                    resp = requests.post(api_endpoint, json=payload, timeout=4.0)
                     if resp.status_code == 200:
                         data = resp.json()
                         candidates = data.get("candidates", [])
@@ -169,30 +227,30 @@ class HarnessTools:
                                     answer_keywords = [w for w in re.findall(r'\w+', gemini_ans.lower()) if len(w) > 2 and w not in stopwords_check]
                                     context_matches = sum(1 for w in answer_keywords if w in context_blob)
                                     overlap_ratio = (context_matches / max(len(answer_keywords), 1))
-                                    used_context = bool(context_matches >= 2 and overlap_ratio >= 0.35 and score >= 0.40)
+                                    used_context = bool(context_matches >= 2 and overlap_ratio >= 0.35 and score >= 0.35)
 
                                     if used_context:
                                         citations = [f"Doc ID: {c.get('doc_id', f'doc_{i}')} | Relevance: {c.get('score', 0.0):.2f}" for i, c in enumerate(retrieved_chunks[:2])]
                                         synth_name = f"Google Gemini ({clean_model_name} - Grounded RAG)"
-                                        is_gen_knowledge = False
+                                        is_gk = False
                                     else:
                                         citations = ["Google Gemini Knowledge Base (Direct Synthesis)"]
                                         synth_name = f"Google Gemini ({clean_model_name} - General Knowledge)"
-                                        is_gen_knowledge = True
+                                        is_gk = True
 
                                     return {
                                         "answer": gemini_ans,
                                         "citations": citations,
                                         "is_matched": True,
-                                        "is_general_knowledge": is_gen_knowledge,
-                                        "confidence": round(score if not is_gen_knowledge else 0.95, 2),
+                                        "is_general_knowledge": is_gk,
+                                        "confidence": round(score if not is_gk else 0.95, 2),
                                         "synthesizer": synth_name,
                                         "latency_ms": round((time.perf_counter() - t0) * 1000.0, 2)
                                     }
                 except Exception:
                     continue
 
-        # --- OPTION B: Fast Local Extractive Synthesizer (Offline Fallback) ---
+        # --- OPTION 3: Fast Local Extractive Synthesizer (Zero-Latency Offline Fallback) ---
         if not retrieved_chunks:
             return {
                 "answer": "",
@@ -209,7 +267,7 @@ class HarnessTools:
         if not sentences:
             sentences = [clean_text]
 
-        q_words = set(re.findall(r'\w+', query.lower()))
+        q_words = set(re.findall(r'[\w\u0900-\u097F]+', query.lower()))
         stopwords = {"is", "the", "a", "an", "and", "or", "in", "of", "to", "what", "how", "who", "where", "क्या", "है", "का", "की", "के", "में", "और", "से", "बताएं"}
         content_q_words = [w for w in q_words if w not in stopwords]
 
@@ -371,13 +429,14 @@ class ModelHarnessOrchestrator:
         # Stage 6: Grounding & Hallucination Guardrail Check
         # -------------------------------------------------------------
         t0 = time.perf_counter()
-        context_texts = [c.get("text", "") for c in retrieved_chunks]
+        context_texts = [c.get("parent_text", "") or c.get("text", "") for c in retrieved_chunks]
         is_gen_know = synth_out.get("is_general_knowledge", False)
         grounding_eval = self.grounding_guardrail.evaluate(
-            raw_answer,
-            context_texts,
-            top_score,
-            is_general_knowledge=is_gen_know
+            answer=raw_answer,
+            retrieved_contexts=context_texts,
+            top_retrieval_score=top_score,
+            is_general_knowledge=is_gen_know,
+            query=refined_query
         )
         stage_latencies["grounding_guardrail_ms"] = grounding_eval.get("latency_ms", round((time.perf_counter() - t0) * 1000.0, 2))
 
@@ -385,10 +444,10 @@ class ModelHarnessOrchestrator:
         refusal_reason = None
         final_answer = raw_answer
 
-        # If synthesis found no matching sentences in the retrieved passages OR grounding failed:
+        # If synthesis found no matching facts OR grounding failed:
         if not is_matched or not grounding_eval["is_grounded"] or not raw_answer:
             is_refused = True
-            refusal_reason = "No grounded facts found in the retrieved dataset for this question."
+            refusal_reason = grounding_eval.get("reason") or "No grounded facts found in the retrieved dataset for this question."
             refusal = SafeRefusalHandler.build_refusal(refusal_reason)
             final_answer = refusal["answer"]
             citations = []

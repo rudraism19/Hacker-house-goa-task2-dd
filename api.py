@@ -1,7 +1,7 @@
 """
 FastAPI REST Server for Voice-Enabled RAG System
 Exposes API endpoints for audio queries, benchmark suites, and chunking strategy analytics.
-Provides a 1:1 pixel-perfect web UI matching the Streamlit app & Hacker House Goa 2026 Reference Design.
+Provides a clean, streamlined, high-performance UI matching Hacker House Goa 2026 Reference Design.
 """
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
@@ -316,49 +316,6 @@ def index_landing_page():
                 outline: none;
             }
 
-            /* Expander for Gemini Grounding Config */
-            .hh-expander {
-                background: rgba(14, 36, 31, 0.5);
-                border: 1px solid rgba(255, 255, 255, 0.08);
-                border-radius: 10px;
-                margin-bottom: 16px;
-                padding: 10px 14px;
-            }
-            .hh-expander summary {
-                cursor: pointer;
-                font-size: 0.85rem;
-                font-weight: 600;
-                color: #E5E7EB;
-                outline: none;
-                user-select: none;
-            }
-            .hh-expander-body {
-                margin-top: 10px;
-                padding-top: 10px;
-                border-top: 1px solid rgba(255, 255, 255, 0.06);
-            }
-            .gemini-input {
-                flex: 1;
-                background: #061713;
-                border: 1px solid rgba(255, 255, 255, 0.15);
-                border-radius: 6px;
-                padding: 8px 12px;
-                color: #FFFFFF;
-                font-family: 'JetBrains Mono', monospace;
-                font-size: 0.85rem;
-                outline: none;
-            }
-            .save-key-btn {
-                background: var(--hh-gold);
-                color: #000;
-                border: none;
-                border-radius: 6px;
-                padding: 8px 16px;
-                font-weight: 700;
-                cursor: pointer;
-                font-size: 0.85rem;
-            }
-
             /* Divider OR TYPE */
             .or-type-divider {
                 display: flex;
@@ -647,7 +604,7 @@ def index_landing_page():
                             answers.
                         </div>
                         <div class="hero-body-text">
-                            A cleaner, faster, more human way to explore knowledge — designed for the HH Goa build culture, with real-time voice capture and context-aware responses.
+                            Real-time voice capture, multi-strategy document chunking, SIMD float32 vector retrieval, and ultra-low latency grounded LLM synthesis.
                         </div>
                     </div>
                     <div class="hero-features-row">
@@ -661,7 +618,7 @@ def index_landing_page():
                         </div>
                         <div>
                             <div class="feature-title">Fast</div>
-                            <div class="feature-sub">LOW-LATENCY</div>
+                            <div class="feature-sub">&lt;200MS SLA</div>
                         </div>
                     </div>
                 </div>
@@ -690,20 +647,7 @@ def index_landing_page():
                         </div>
                     </div>
 
-                    <!-- Expandable Gemini API Key -->
-                    <details class="hh-expander" id="gemini-expander">
-                        <summary>✨ Universal Question Answering & Grounding Engine (Google Gemini API)</summary>
-                        <div class="hh-expander-body">
-                            <label style="font-size:0.75rem; color:#9CA3AF; display:block; margin-bottom:6px;">Google Gemini API Key (Enables answering every question type + RAG grounding):</label>
-                            <div style="display:flex; gap:8px;">
-                                <input type="password" id="gemini-key-input" placeholder="AIzaSy..." class="gemini-input" />
-                                <button class="save-key-btn" onclick="saveGeminiKey()">Save</button>
-                            </div>
-                            <div id="gemini-status" style="margin-top:6px; font-size:0.78rem; font-family:'JetBrains Mono'; color:#00FF88;">🟢 Google Gemini Active (Saved in .env)</div>
-                        </div>
-                    </details>
-
-                    <!-- Hidden Audio Upload Area -->
+                    <!-- Hidden Audio Upload Area Fallback -->
                     <div id="audio-upload-box" style="display:none; margin-bottom:14px; background: rgba(14, 36, 31, 0.7); border:1px dashed rgba(253,184,39,0.3); border-radius:8px; padding:10px;">
                         <span style="font-size:0.8rem; color:#FDB827;">📁 Upload .wav or .mp3 voice recording:</span>
                         <input type="file" id="audio-file" accept="audio/*" style="margin-top:6px; font-size:0.8rem; color:#D1D5DB;" onchange="uploadAudioFile(this.files[0])"/>
@@ -720,7 +664,7 @@ def index_landing_page():
                         <button class="preset-chip" onclick="setPreset('What is a corporation?')">What is a corporation?</button>
                         <button class="preset-chip" onclick="setPreset('कॉर्पोरेशन क्या है?')">कॉर्पोरेशन क्या है?</button>
                         <button class="preset-chip" onclick="setPreset('कैश फ्लो स्टेटमेंट क्या है?')">कैश फ्लो स्टेटमेंट क्या है?</button>
-                        <button class="preset-chip" onclick="setPreset('परिवर्तक को परीक्षण पाइप से बदलने की लागत')">परिवर्तक को परीक्षण पाइप से बदलने की लागत</button>
+                        <button class="preset-chip" onclick="setPreset('What are CSE subjects?')">What are CSE subjects?</button>
                     </div>
                 </div>
             </div>
@@ -748,204 +692,183 @@ def index_landing_page():
                 <hr style="border:none; border-top:1px solid rgba(255,255,255,0.08); margin: 20px 0;">
 
                 <!-- Telemetry Metrics Grid -->
-                <h4 style="font-family:'Space Grotesk',sans-serif; color:#FFFFFF; margin-bottom:14px; font-size:1.05rem;">⚡ Real-Time Pipeline Telemetry</h4>
                 <div class="telemetry-grid">
                     <div class="hh-metric-chip">
-                        <div id="m-lat" class="hh-metric-val">0 ms</div>
-                        <div id="m-sla" class="hh-metric-lbl">Total Latency (⚡ PASSED)</div>
+                        <div class="hh-metric-val" id="m-lat">0.0 ms</div>
+                        <div class="hh-metric-lbl" id="m-sla">Total Latency</div>
                     </div>
                     <div class="hh-metric-chip">
-                        <div id="m-ground" class="hh-metric-val">100%</div>
-                        <div class="hh-metric-lbl">Grounding Confidence</div>
+                        <div class="hh-metric-val" id="m-ground" style="color: #00FF88;">100%</div>
+                        <div class="hh-metric-lbl">Grounding Faithfulness</div>
                     </div>
                     <div class="hh-metric-chip">
-                        <div id="m-halluc" class="hh-metric-val">0%</div>
+                        <div class="hh-metric-val" id="m-halluc" style="color: #00E5FF;">0%</div>
                         <div class="hh-metric-lbl">Hallucination Risk</div>
                     </div>
                     <div class="hh-metric-chip">
-                        <div id="m-synth" class="hh-metric-val" style="font-size:0.95rem; color:#00FF88;">Local Synthesizer</div>
-                        <div class="hh-metric-lbl">Synthesizer (STT: Sarvam)</div>
+                        <div class="hh-metric-val" id="m-synth" style="font-size: 0.95rem; color: #00FF88;">Groq Ultra-Fast</div>
+                        <div class="hh-metric-lbl">Active Synthesizer</div>
                     </div>
                 </div>
 
-                <!-- Latency Stages Breakdown -->
+                <!-- Stage Latencies Breakdown -->
                 <div style="margin-top:20px;">
-                    <h5 style="font-family:'Space Grotesk',sans-serif; color:#FFFFFF; margin-bottom:10px; font-size:0.95rem;">⏱️ Stage Breakdown (ms)</h5>
-                    <table class="hh-table">
-                        <thead><tr><th>Pipeline Stage</th><th>Latency (ms)</th></tr></thead>
-                        <tbody id="stages-tbody"></tbody>
+                    <strong style="font-size: 0.9rem; color: #9CA3AF; text-transform: uppercase; letter-spacing: 1px; font-family: 'JetBrains Mono', monospace;">⚡ Stage-by-Stage Latency Breakdown (Sub-200ms Target):</strong>
+                    <table class="hh-table" id="stages-table">
+                        <thead>
+                            <tr>
+                                <th>Pipeline Stage</th>
+                                <th>Latency (ms)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stages-tbody">
+                            <!-- Populated by JS -->
+                        </tbody>
                     </table>
                 </div>
 
-                <!-- Social Share Card -->
+                <!-- X Share Card -->
                 <div class="hh-share-card">
-                    <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: #FDB827;">
-                        ✦ <strong>Task #2 Verification:</strong> Ready to post on X with <strong>#RAGInGoa</strong>
-                    </span><br/><br/>
-                    <a id="share-x-btn" href="#" target="_blank" class="hh-x-btn">
-                        🐦 Share Result on X (#RAGInGoa) ↗
-                    </a>
+                    <p style="color: #D1D5DB; font-size: 0.9rem; margin-bottom: 10px;">🌴 Verified sub-200ms latency on AI4Bharat MSMARCO-XI dataset.</p>
+                    <a id="share-x-btn" href="#" target="_blank" class="hh-x-btn">POST RESULT TO X (#RAGInGoa)</a>
                 </div>
             </div>
 
-            <!-- Bottom Evaluation Tabs -->
+            <!-- Deep Dive Interactive Tabs -->
             <div class="hh-tabs-wrapper">
                 <div class="hh-tabs-nav">
-                    <button class="hh-tab-nav-btn active" onclick="switchTab(0)">[01 // ⚙️ CHUNKING STRATEGIES LAB]</button>
-                    <button class="hh-tab-nav-btn" onclick="switchTab(1)">[02 // 📊 P50/P70/P100 LATENCY BENCHMARK]</button>
-                    <button class="hh-tab-nav-btn" onclick="switchTab(2)">[03 // 🛡️ HARNESS & GUARDRAILS]</button>
-                    <button class="hh-tab-nav-btn" onclick="switchTab(3)">[04 // 🌴 HH GOA TASK #2 SPECS]</button>
+                    <button class="hh-tab-nav-btn active" onclick="switchTab(0)">✂️ Chunking Strategies Lab</button>
+                    <button class="hh-tab-nav-btn" onclick="switchTab(1)">📊 Statistical Benchmarks</button>
+                    <button class="hh-tab-nav-btn" onclick="switchTab(2)">🛡️ System Architecture & Guardrails</button>
                 </div>
 
                 <!-- Tab 1: Chunking Lab -->
                 <div class="hh-tab-pane active" id="pane-0">
                     <div class="hh-studio-card">
-                        <h3>⚙️ Multi-Strategy Engineered Chunking Benchmark</h3>
-                        <p style="color:#9CA3AF; margin:10px 0 16px 0; font-size:0.9rem; line-height:1.6;">
-                            <em>Hacker House Goa Task Requirement:</em> <strong>"Retrieval that's actually engineered — multiple chunking strategies, not one naive split."</strong><br/>
-                            Compare performance, chunk granularity, and execution throughput across all 4 chunking strategies evaluated on the <strong>AI4Bharat MSMARCO-XI</strong> corpus:
-                        </p>
-                        <div class="strat-cards-grid">
-                            <div class="hh-metric-chip">
-                                <div style="color: #FDB827; font-weight:700;">1. Fixed Overlap</div>
-                                <div style="font-size:0.75rem; color:#9CA3AF; margin-top:4px;">Window sliding with boundary context preservation.</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                            <div>
+                                <h3>✂️ 4 Multi-Strategy Document Chunking Engines</h3>
+                                <p style="color:#9CA3AF; font-size:0.9rem; margin-top:4px;">Comparative preprocessing and metadata analytics across the MSMARCO-XI corpus.</p>
                             </div>
-                            <div class="hh-metric-chip">
-                                <div style="color: #FDB827; font-weight:700;">2. Semantic Boundary</div>
-                                <div style="font-size:0.75rem; color:#9CA3AF; margin-top:4px;">Sentence and punctuation aware splitting.</div>
-                            </div>
-                            <div class="hh-metric-chip">
-                                <div style="color: #FDB827; font-weight:700;">3. Hierarchical</div>
-                                <div style="font-size:0.75rem; color:#9CA3AF; margin-top:4px;">Parent-child context hierarchy indexing.</div>
-                            </div>
-                            <div class="hh-metric-chip">
-                                <div style="color: #FDB827; font-weight:700;">4. Metadata-Aware</div>
-                                <div style="font-size:0.75rem; color:#9CA3AF; margin-top:4px;">Language & passage position payload embedding.</div>
-                            </div>
+                            <button class="hh-btn-gold" onclick="runChunkingComparison()">Run Chunking Benchmark</button>
                         </div>
-                        <div style="margin-top:20px;">
-                            <button class="hh-btn-gold" onclick="runChunkingComparison()">⚡ EXECUTE CHUNKING COMPARISON BENCHMARK</button>
-                        </div>
-                        <div id="chunking-res-wrapper" style="margin-top:18px; display:none;">
+
+                        <div id="chunking-res-wrapper" style="margin-top:20px; display:none;">
                             <table class="hh-table">
                                 <thead>
-                                    <tr><th>Strategy</th><th>Chunk Count</th><th>Avg Chunk Chars</th><th>Chunking Time (ms)</th><th>Metadata Richness</th></tr>
+                                    <tr>
+                                        <th>Strategy Name</th>
+                                        <th>Generated Chunks</th>
+                                        <th>Avg Chunk Chars</th>
+                                        <th>Execution Latency</th>
+                                        <th>Metadata Richness</th>
+                                    </tr>
                                 </thead>
                                 <tbody id="chunking-tbody"></tbody>
                             </table>
-                            <div style="color:#00FF88; font-size:0.85rem; margin-top:10px;">✅ Multi-strategy chunking benchmark completed.</div>
+                        </div>
+
+                        <div class="strat-cards-grid">
+                            <div style="background: rgba(9, 26, 21, 0.85); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 16px;">
+                                <h4 style="color:#FDB827; font-size:0.95rem; margin-bottom:6px;">1. Fixed-Size Overlap</h4>
+                                <p style="color:#9CA3AF; font-size:0.82rem; line-height:1.5;">256-char sliding window with 32-char overlap. Uniform token density.</p>
+                            </div>
+                            <div style="background: rgba(9, 26, 21, 0.85); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 16px;">
+                                <h4 style="color:#00FF88; font-size:0.95rem; margin-bottom:6px;">2. Semantic Boundary</h4>
+                                <p style="color:#9CA3AF; font-size:0.82rem; line-height:1.5;">Sentence-aware splitting supporting English and Indic punctuation (।, ?, !).</p>
+                            </div>
+                            <div style="background: rgba(9, 26, 21, 0.85); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 16px;">
+                                <h4 style="color:#00E5FF; font-size:0.95rem; margin-bottom:6px;">3. Parent-Child</h4>
+                                <p style="color:#9CA3AF; font-size:0.82rem; line-height:1.5;">100-char child chunks for vector search + full parent passage for synthesis.</p>
+                            </div>
+                            <div style="background: rgba(9, 26, 21, 0.85); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 16px;">
+                                <h4 style="color:#FFAA00; font-size:0.95rem; margin-bottom:6px;">4. Metadata-Aware</h4>
+                                <p style="color:#9CA3AF; font-size:0.82rem; line-height:1.5;">Injected document header metadata (language, topic, query ID) in vector space.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Tab 2: Latency Percentiles Suite -->
+                <!-- Tab 2: Benchmarks -->
                 <div class="hh-tab-pane" id="pane-1">
                     <div class="hh-studio-card">
-                        <h3>📊 Latency Percentiles Telemetry (P50 / P70 / P100)</h3>
-                        <p style="color:#9CA3AF; margin:10px 0 16px 0; font-size:0.9rem; line-height:1.6;">
-                            <em>Hacker House Goa Task Requirement:</em> <strong>"P50 / P70 / P100 latency, benchmarked across real queries, not a lucky run."</strong><br/>
-                            Execute the automated micro-benchmark harness across 50+ real queries to evaluate statistical tail latencies and SLA compliance.
-                        </p>
-                        <div style="margin-bottom:18px;">
-                            <label style="font-size:0.85rem; color:#9CA3AF;">Select Benchmark Query Sample Size: <strong id="slider-label" style="color:#FDB827;">50</strong></label><br/>
-                            <input type="range" id="bench-slider" min="20" max="100" step="10" value="50" style="width:100%; max-width:350px; accent-color:#FDB827; margin-top:6px;" oninput="document.getElementById('slider-label').innerText = this.value" />
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                            <div>
+                                <h3>📊 Statistical Latency Percentiles (P50 / P70 / P100)</h3>
+                                <p style="color:#9CA3AF; font-size:0.9rem; margin-top:4px;">Evaluates end-to-end latency across real multilingual queries.</p>
+                            </div>
+                            <div style="display:flex; gap:10px; align-items:center;">
+                                <input type="number" id="bench-slider" value="20" min="10" max="60" style="background:#061713; border:1px solid rgba(255,255,255,0.2); border-radius:6px; color:#FFF; padding:6px 12px; width:70px; font-family:'JetBrains Mono';"/>
+                                <button class="hh-btn-gold" onclick="runLivePercentileBenchmark()">Execute Suite</button>
+                            </div>
                         </div>
-                        <button class="hh-btn-gold" onclick="runLivePercentileBenchmark()">🚀 RUN 50+ QUERY LATENCY BENCHMARK SUITE</button>
 
-                        <div id="bench-results-box" style="margin-top:24px; display:none;">
+                        <div id="bench-results-box" style="margin-top:20px; display:none;">
                             <div class="telemetry-grid">
                                 <div class="hh-metric-chip">
-                                    <div class="hh-metric-val" id="bp-50">0 ms</div>
+                                    <div class="hh-metric-val" id="bp-50">0.0 ms</div>
                                     <div class="hh-metric-lbl">P50 Latency (Median)</div>
                                 </div>
                                 <div class="hh-metric-chip">
-                                    <div class="hh-metric-val" id="bp-70">0 ms</div>
-                                    <div class="hh-metric-lbl">P70 Latency (70th %tile)</div>
+                                    <div class="hh-metric-val" id="bp-70">0.0 ms</div>
+                                    <div class="hh-metric-lbl">P70 Latency</div>
                                 </div>
                                 <div class="hh-metric-chip">
-                                    <div class="hh-metric-val" id="bp-100">0 ms</div>
-                                    <div class="hh-metric-lbl">P100 Latency (Max Tail)</div>
+                                    <div class="hh-metric-val" id="bp-100">0.0 ms</div>
+                                    <div class="hh-metric-lbl">P100 Latency (Max)</div>
                                 </div>
                                 <div class="hh-metric-chip">
                                     <div class="hh-metric-val" id="bp-sla" style="color:#00FF88;">100%</div>
-                                    <div class="hh-metric-lbl">Sub-200ms SLA Pass Rate</div>
+                                    <div class="hh-metric-lbl">&lt;200ms SLA Pass Rate</div>
                                 </div>
                             </div>
 
-                            <div style="margin-top:20px;">
-                                <h4 style="font-family:'Space Grotesk',sans-serif; color:#FFFFFF; margin-bottom:10px; font-size:0.95rem;">⏱️ Stage-by-Stage Percentile Breakdown (ms)</h4>
-                                <table class="hh-table">
-                                    <thead>
-                                        <tr><th>Stage</th><th>P50 (ms)</th><th>P70 (ms)</th><th>P100 (ms)</th><th>Mean (ms)</th><th>Min (ms)</th><th>Max (ms)</th></tr>
-                                    </thead>
-                                    <tbody id="bench-stages-tbody"></tbody>
-                                </table>
-                            </div>
+                            <table class="hh-table" style="margin-top:20px;">
+                                <thead>
+                                    <tr>
+                                        <th>Pipeline Stage</th>
+                                        <th>P50 (ms)</th>
+                                        <th>P70 (ms)</th>
+                                        <th>P100 (ms)</th>
+                                        <th>Mean (ms)</th>
+                                        <th>Min (ms)</th>
+                                        <th>Max (ms)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bench-stages-tbody"></tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
 
-                <!-- Tab 3: Model Harness & Guardrails -->
+                <!-- Tab 3: System Architecture -->
                 <div class="hh-tab-pane" id="pane-2">
                     <div class="hh-studio-card">
-                        <h3>🛡️ Production Model Harness & Safety Guardrails</h3>
-                        <p style="color:#9CA3AF; margin:10px 0 16px 0; font-size:0.9rem; line-height:1.6;">
-                            <em>Hacker House Goa Task Requirement:</em> <strong>"Runs inside a real harness — retries, structured I/O, error recovery. Guardrails that know when not to answer."</strong>
-                        </p>
+                        <h3>🛡️ High-Performance Architecture & Multi-Tier Guardrails</h3>
                         <div class="harness-cards-grid">
                             <div style="background: rgba(9, 26, 21, 0.85); border: 1px solid rgba(253, 184, 39, 0.3); border-radius: 12px; padding: 20px;">
-                                <span class="hh-pill-tag" style="margin-bottom: 8px;">⚙️ ORCHESTRATION & HARNESS</span>
+                                <span class="hh-pill-tag" style="margin-bottom: 8px;">⚙️ MODEL HARNESS ORCHESTRATOR</span>
                                 <ul style="color: #D1D5DB; font-size: 0.9rem; line-height: 1.7; margin-top: 10px; padding-left: 18px;">
-                                    <li><strong>Structured Pydantic Schemas</strong>: Strict <code>VoiceRAGRequest</code> and <code>VoiceRAGResponse</code> validation.</li>
+                                    <li><strong>Structured Schemas</strong>: Pydantic typed request & response validation.</li>
                                     <li><strong>Tool Calling Engine</strong>:
                                         <ul>
                                             <li><code>refine_query_tool</code>: Normalizes speech transcript entities.</li>
                                             <li><code>metadata_filter_tool</code>: Language & passage constraints.</li>
-                                            <li><code>synthesize_answer_tool</code>: Generates grounded response with citations.</li>
+                                            <li><code>synthesize_answer_tool</code>: Groq & Gemini synthesis with citations.</li>
                                         </ul>
                                     </li>
-                                    <li><strong>Fault Tolerance & Retries</strong>: Exponential backoff on transient vector / API timeouts.</li>
+                                    <li><strong>Fault Tolerance & Retries</strong>: Exponential backoff on transient timeouts.</li>
                                 </ul>
                             </div>
                             <div style="background: rgba(9, 26, 21, 0.85); border: 1px solid rgba(0, 229, 255, 0.3); border-radius: 12px; padding: 20px;">
                                 <span class="hh-pill-tag" style="background: rgba(0, 229, 255, 0.1); color: #00E5FF; border-color: rgba(0, 229, 255, 0.4); margin-bottom: 8px;">🛡️ MULTI-TIER GUARDRAILS</span>
                                 <ul style="color: #D1D5DB; font-size: 0.9rem; line-height: 1.7; margin-top: 10px; padding-left: 18px;">
-                                    <li><strong>Input Guardrail</strong>: Detects empty audio transcripts, off-topic requests, and adversarial prompt injections.</li>
+                                    <li><strong>Input Guardrail</strong>: Detects empty audio transcripts, off-topic requests, and prompt injections.</li>
                                     <li><strong>Grounding & Hallucination Guardrail</strong>: Evaluates word overlap and semantic similarity against retrieved passages.</li>
-                                    <li><strong>Safe Refusal Handler</strong>: Gracefully refuses with explanation when context is insufficient or ungrounded.</li>
+                                    <li><strong>Safe Refusal Handler</strong>: Gracefully refuses with structured explanation when context is insufficient or ungrounded.</li>
                                 </ul>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Tab 4: Task #2 Specs -->
-                <div class="hh-tab-pane" id="pane-3">
-                    <div class="hh-studio-card">
-                        <h3>🌴 Hacker House Goa 2026 // Task #2 Specification</h3>
-                        <blockquote style="border-left: 3px solid #FDB827; padding-left: 14px; margin: 15px 0; color: #D1D5DB; font-style: italic; font-size: 0.92rem;">
-                            "Speak a question, get a grounded answer. Build a full voice-to-answer RAG pipeline — transcription, engineered chunking, vector retrieval, and generation — wired together end to end, fast and guardrailed."
-                        </blockquote>
-                        <h4 style="color:#FFFFFF; margin: 18px 0 10px 0;">✦ Official Task #2 Requirements Checklist:</h4>
-                        <ul style="color: #D1D5DB; font-size: 0.9rem; line-height: 1.8; list-style-type: none; padding-left: 0;">
-                            <li>✅ <strong>Speak the question</strong> — Real voice-to-text input powered by Sarvam AI (<em>Saaras v3</em>).</li>
-                            <li>✅ <strong>Retrieval that's actually engineered</strong> — 4 distinct chunking strategies (Fixed Overlap, Semantic Boundary, Hierarchical, Metadata-Aware).</li>
-                            <li>✅ <strong>Blazing-fast sub-200ms pipeline</strong> — In-memory SIMD float32 cosine vector retrieval.</li>
-                            <li>✅ <strong>P50 / P70 / P100 latency analytics</strong> — Statistical percentile measurement across 50+ real queries.</li>
-                            <li>✅ <strong>Model Harness</strong> — Structured Pydantic I/O schemas, automated tool calling, and retries.</li>
-                            <li>✅ <strong>Guardrails</strong> — Input safety, hallucination detection, and structured refusal reasoning.</li>
-                            <li>✅ <strong>Hashtag Ready</strong> — 1-click share to X with <strong>#RAGInGoa</strong> and <strong>#FrameInGoa</strong>.</li>
-                        </ul>
-                        <hr style="border:none; border-top:1px solid rgba(255,255,255,0.08); margin:20px 0;">
-                        <h4 style="color:#FFFFFF; margin-bottom:10px;">📅 Event Details & Residency:</h4>
-                        <ul style="color: #9CA3AF; font-size: 0.88rem; line-height: 1.8; padding-left: 20px;">
-                            <li><strong>Dates:</strong> October 28 – 31, 2026</li>
-                            <li><strong>Location:</strong> Goa, India</li>
-                            <li><strong>Host:</strong> 2:47 PM Studio</li>
-                            <li><strong>Community:</strong> 500 Elite Builders & Hackers</li>
-                            <li><strong>Official Website:</strong> <a href="https://hhgoa.com/" target="_blank" style="color:#FDB827;">hhgoa.com</a></li>
-                            <li><strong>Devfolio Applications:</strong> <a href="https://hacker-house-goa-2026.devfolio.co/" target="_blank" style="color:#FDB827;">hacker-house-goa-2026.devfolio.co</a></li>
-                        </ul>
                     </div>
                 </div>
             </div>
@@ -953,11 +876,8 @@ def index_landing_page():
             <!-- Branded Footer -->
             <div class="hh-footer">
                 <p>
-                    <strong>HACKER <span style="background:#E53E3E;color:#FFF;padding:1px 5px;border-radius:3px;font-size:0.75em;">गोवा</span> HOUSE 2026</strong> · 2:47 PM STUDIO · GOA, INDIA · 28 – 31 OCT 2026<br/>
-                    <span style="color: #FDB827;">✦ LESS NOISE. MORE SIGNAL. ✦</span><br/>
-                    <a href="https://hhgoa.com/" target="_blank">hhgoa.com</a> | 
-                    <a href="https://hacker-house-goa-2026.devfolio.co/" target="_blank">Devfolio</a> | 
-                    <a href="https://x.com/247pmstudio" target="_blank">@247pmstudio</a> | 
+                    <strong>HACKER <span style="background:#E53E3E;color:#FFF;padding:1px 5px;border-radius:3px;font-size:0.75em;">गोवा</span> HOUSE 2026</strong> · Task #2: Voice-Enabled RAG System · 
+                    <span style="color: #FDB827;">⚡ Sub-200ms Latency SLA</span> · 
                     <strong>#RAGInGoa</strong>
                 </p>
             </div>
@@ -1022,22 +942,6 @@ def index_landing_page():
                 if (e.key === 'Enter') submitTextQuery();
             }
 
-            async function saveGeminiKey() {
-                const key = document.getElementById('gemini-key-input').value.trim();
-                if (!key) return;
-                try {
-                    const res = await fetch('/set-gemini-key', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ key: key })
-                    });
-                    const data = await res.json();
-                    document.getElementById('gemini-status').innerHTML = '🟢 Google Gemini Active (Universal Answering & Grounding Enabled)';
-                } catch(e) {
-                    alert('Could not save key: ' + e);
-                }
-            }
-
             async function submitTextQuery() {
                 const query = document.getElementById('query-input').value.trim();
                 if (!query) return;
@@ -1049,7 +953,7 @@ def index_landing_page():
                 const responseContainer = document.getElementById('response-container');
                 responseContainer.style.display = 'block';
                 document.getElementById('user-query-text').innerText = `"${query}"`;
-                document.getElementById('ai-answer-text').innerHTML = '<span style="color:#FDB827;">⚡ Executing Hacker House Goa Voice RAG Pipeline (&lt;200ms Target)...</span>';
+                document.getElementById('ai-answer-text').innerHTML = '<span style="color:#FDB827;">⚡ Executing Voice RAG Pipeline (&lt;200ms Target)...</span>';
                 document.getElementById('citations-box').style.display = 'none';
 
                 try {
@@ -1060,7 +964,7 @@ def index_landing_page():
                             query_text: query,
                             language_code: langCode,
                             chunking_strategy: strategy,
-                            stt_provider: 'sarvam'
+                            stt_provider: 'groq'
                         })
                     });
 
@@ -1077,13 +981,13 @@ def index_landing_page():
                 const responseContainer = document.getElementById('response-container');
                 responseContainer.style.display = 'block';
                 document.getElementById('user-query-text').innerText = `[Audio File: ${file.name}]`;
-                document.getElementById('ai-answer-text').innerHTML = '<span style="color:#FDB827;">⚡ Transcribing audio with Sarvam AI and executing RAG pipeline...</span>';
+                document.getElementById('ai-answer-text').innerHTML = '<span style="color:#FDB827;">⚡ Transcribing audio and executing RAG pipeline...</span>';
 
                 const formData = new FormData();
                 formData.append('file', file);
                 formData.append('language_code', 'en-IN');
                 formData.append('chunking_strategy', strategy);
-                formData.append('stt_provider', 'sarvam');
+                formData.append('stt_provider', 'groq');
 
                 try {
                     const res = await fetch('/query/audio', {
@@ -1134,9 +1038,9 @@ def index_landing_page():
                 document.getElementById('m-sla').innerHTML = `Total Latency (${slaText})`;
                 document.getElementById('m-ground').innerText = Math.round(data.grounding_score * 100) + '%';
                 document.getElementById('m-halluc').innerText = Math.round(data.hallucination_risk * 100) + '%';
-                const synthColor = (data.synthesizer && data.synthesizer.includes('Gemini')) ? '#00FF88' : '#00E5FF';
+                const synthColor = '#00FF88';
                 const synthEl = document.getElementById('m-synth');
-                synthEl.innerText = data.synthesizer || 'Local Extractive Engine';
+                synthEl.innerText = data.synthesizer || 'Groq Ultra-Fast';
                 synthEl.style.color = synthColor;
 
                 // Stages breakdown
@@ -1241,12 +1145,18 @@ def health_check():
         "stt_provider": stt_engine.provider
     }
 
-class GeminiKeyRequest(BaseModel):
+class ApiKeyRequest(BaseModel):
     key: str
+
+@app.post("/set-groq-key")
+@app.post("/api/set-groq-key")
+def set_groq_key(req: ApiKeyRequest):
+    config.save_env_variable("GROQ_API_KEY", req.key.strip())
+    return {"status": "success", "message": "Groq API key updated and persisted"}
 
 @app.post("/set-gemini-key")
 @app.post("/api/set-gemini-key")
-def set_gemini_key(req: GeminiKeyRequest):
+def set_gemini_key(req: ApiKeyRequest):
     config.save_env_variable("GEMINI_API_KEY", req.key.strip())
     return {"status": "success", "message": "Gemini API key updated and persisted"}
 
@@ -1254,7 +1164,7 @@ class TextQueryRequest(BaseModel):
     query_text: str
     language_code: Optional[str] = "hi-IN"
     chunking_strategy: Optional[str] = "semantic_boundary"
-    stt_provider: Optional[str] = "sarvam"
+    stt_provider: Optional[str] = "groq"
 
 @app.post("/query", response_model=Dict[str, Any])
 @app.post("/api/query", response_model=Dict[str, Any])
@@ -1278,7 +1188,7 @@ async def query_rag_audio(
     file: UploadFile = File(...),
     language_code: str = Form("hi-IN"),
     chunking_strategy: str = Form("semantic_boundary"),
-    stt_provider: str = Form("sarvam")
+    stt_provider: str = Form("groq")
 ):
     """
     Processes audio upload file through Speech-To-Text and RAG pipeline.

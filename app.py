@@ -17,8 +17,8 @@ from stt_engine import SpeechToTextEngine
 from model_harness import ModelHarnessOrchestrator, VoiceRAGRequest
 from latency_analytics import LatencyAnalyticsEngine
 import config
+
 DEFAULT_STT_LANG = getattr(config, "DEFAULT_STT_LANG", "en-IN")
-GEMINI_API_KEY = getattr(config, "GEMINI_API_KEY", os.getenv("GEMINI_API_KEY", ""))
 
 # -------------------------------------------------------------------
 # Streamlit Page Configuration
@@ -257,22 +257,6 @@ st.markdown(f"""
         letter-spacing: 1px;
     }}
     
-    /* Voice Speak Button */
-    .speak-now-btn {{
-        background: #FDB827;
-        color: #000000;
-        font-weight: 800;
-        font-size: 0.95rem;
-        padding: 10px 22px;
-        border-radius: 25px;
-        border: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        letter-spacing: 0.5px;
-        box-shadow: 0 4px 15px rgba(253, 184, 39, 0.35);
-    }}
-    
     /* Divider OR TYPE */
     .or-type-divider {{
         display: flex;
@@ -296,68 +280,7 @@ st.markdown(f"""
         margin-left: 15px;
     }}
     
-    /* Preset Chips */
-    .preset-chip {{
-        display: inline-block;
-        background: rgba(14, 36, 31, 0.9);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        color: #D1D5DB;
-        padding: 7px 14px;
-        border-radius: 16px;
-        font-size: 0.82rem;
-        margin: 4px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }}
-    .preset-chip:hover {{
-        border-color: #FDB827;
-        color: #FDB827;
-        background: rgba(253, 184, 39, 0.1);
-    }}
-    
-    /* Custom Streamlit Button Styling */
-    div.stButton > button {{
-        background: #FDB827 !important;
-        color: #000000 !important;
-        border: none !important;
-        border-radius: 8px !important;
-        padding: 10px 20px !important;
-        font-family: 'Space Grotesk', sans-serif !important;
-        font-weight: 700 !important;
-        font-size: 0.95rem !important;
-        letter-spacing: 0.5px !important;
-        box-shadow: 0 4px 15px rgba(253, 184, 39, 0.3) !important;
-        transition: all 0.2s ease !important;
-    }}
-    div.stButton > button:hover {{
-        background: #FFAA00 !important;
-        transform: translateY(-1px) !important;
-        box-shadow: 0 6px 20px rgba(253, 184, 39, 0.5) !important;
-        color: #000000 !important;
-    }}
-    
-    /* Result Bubbles */
-    .chat-bubble-user {{
-        background: rgba(253, 184, 39, 0.1);
-        border: 1px solid rgba(253, 184, 39, 0.35);
-        border-radius: 14px 14px 2px 14px;
-        padding: 16px 20px;
-        margin-bottom: 15px;
-        color: #FFF3EB;
-        font-size: 1rem;
-    }}
-
-    .chat-bubble-ai {{
-        background: #0e2620;
-        border: 1px solid rgba(0, 229, 255, 0.35);
-        border-radius: 14px 14px 14px 2px;
-        padding: 20px 24px;
-        margin-bottom: 15px;
-        color: #F8F9FA;
-        box-shadow: 0 6px 30px rgba(0, 0, 0, 0.4);
-    }}
-    
-    /* Telemetry Pill / Chips */
+    /* Telemetry Metric Chip */
     .hh-metric-chip {{
         background: rgba(9, 26, 21, 0.95);
         border: 1px solid rgba(255, 255, 255, 0.08);
@@ -385,32 +308,27 @@ st.markdown(f"""
         margin-top: 4px;
     }}
     
-    /* Tabs Styling */
-    .stTabs [data-baseweb="tab-list"] {{
-        gap: 8px;
-        background: rgba(9, 26, 21, 0.7);
-        padding: 6px;
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.05);
+    /* Chat Results */
+    .chat-bubble-user {{
+        background: rgba(253, 184, 39, 0.1);
+        border: 1px solid rgba(253, 184, 39, 0.35);
+        border-radius: 14px 14px 2px 14px;
+        padding: 16px 20px;
+        margin-bottom: 15px;
+        color: #FFF3EB;
+        font-size: 1rem;
     }}
-
-    .stTabs [data-baseweb="tab"] {{
-        background: transparent;
-        border-radius: 8px;
-        color: #9CA3AF;
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.85rem;
-        font-weight: 600;
-        padding: 8px 16px;
-        border: none;
+    
+    .chat-bubble-ai {{
+        background: #0e2620;
+        border: 1px solid rgba(0, 229, 255, 0.35);
+        border-radius: 14px 14px 14px 2px;
+        padding: 20px 24px;
+        margin-bottom: 15px;
+        color: #F8F9FA;
+        box-shadow: 0 6px 30px rgba(0, 0, 0, 0.4);
     }}
-
-    .stTabs [aria-selected="true"] {{
-        background: rgba(253, 184, 39, 0.15) !important;
-        color: #FDB827 !important;
-        border: 1px solid rgba(253, 184, 39, 0.4) !important;
-    }}
-
+    
     /* Footer */
     .hh-footer {{
         text-align: center;
@@ -421,18 +339,33 @@ st.markdown(f"""
         font-size: 0.8rem;
         color: #6B7280;
     }}
-    .hh-footer a {{
-        color: #FDB827;
-        text-decoration: none;
-    }}
-    .hh-footer a:hover {{
-        text-decoration: underline;
-    }}
 </style>
 """, unsafe_allow_html=True)
 
 # -------------------------------------------------------------------
-# Top Brand Bar & Navigation (Hacker House Goa Reference)
+# Global Pipeline Initialization
+# -------------------------------------------------------------------
+@st.cache_resource(show_spinner=False)
+def init_rag_system():
+    loader_en = MSMARCOXIBackendLoader(lang="en", max_samples=300)
+    loader_hi = MSMARCOXIBackendLoader(lang="hi", max_samples=300)
+    dataset = loader_en.load_dataset() + loader_hi.load_dataset()
+
+    chunk_engine = MultiStrategyChunkingEngine(strategy_name="semantic_boundary")
+    chunks = chunk_engine.chunk_documents(dataset)
+
+    vector_store = VectorStore()
+    vector_store.build_index(chunks)
+
+    stt_engine = SpeechToTextEngine(provider="groq")
+    orchestrator = ModelHarnessOrchestrator(stt_engine, vector_store, chunk_engine)
+    
+    return dataset, chunk_engine, vector_store, stt_engine, orchestrator
+
+dataset, chunk_engine, vector_store, stt_engine, orchestrator = init_rag_system()
+
+# -------------------------------------------------------------------
+# Top Brand Bar
 # -------------------------------------------------------------------
 st.markdown("""
 <div class="hh-nav-container">
@@ -446,30 +379,11 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # -------------------------------------------------------------------
-# RAG System Engine Initialization
-# -------------------------------------------------------------------
-@st.cache_resource(show_spinner=False)
-def initialize_hh_rag():
-    loader_en = MSMARCOXIBackendLoader(lang="en", max_samples=300)
-    loader_hi = MSMARCOXIBackendLoader(lang="hi", max_samples=300)
-    dataset = loader_en.load_dataset() + loader_hi.load_dataset()
-    chunk_engine = MultiStrategyChunkingEngine(strategy_name="semantic_boundary")
-    chunks = chunk_engine.chunk_documents(dataset)
-    vector_store = VectorStore()
-    vector_store.build_index(chunks)
-    stt_engine = SpeechToTextEngine(provider="sarvam")
-    orchestrator = ModelHarnessOrchestrator(stt_engine, vector_store, chunk_engine)
-    return dataset, chunk_engine, vector_store, stt_engine, orchestrator
-
-dataset, chunk_engine, vector_store, stt_engine, orchestrator = initialize_hh_rag()
-stt_engine.provider = "sarvam"
-
-# -------------------------------------------------------------------
-# Dual Hero Section (Matching Reference Image 1)
+# Two-Column Hero Grid
 # -------------------------------------------------------------------
 col_hero_left, col_hero_right = st.columns([1.1, 1.3], gap="large")
 
-# LEFT CARD: "Ask in your voice. Get grounded answers."
+# LEFT CARD: "Ask in your voice"
 with col_hero_left:
     st.markdown("""
     <div class="hh-hero-card">
@@ -482,7 +396,7 @@ with col_hero_left:
                 answers.
             </div>
             <div class="hero-body-text">
-                A cleaner, faster, more human way to explore knowledge — designed for the HH Goa build culture, with real-time voice capture and context-aware responses.
+                Real-time voice capture, multi-strategy document chunking, SIMD float32 vector retrieval, and ultra-low latency grounded LLM synthesis.
             </div>
         </div>
         <div class="hero-features-row">
@@ -496,13 +410,13 @@ with col_hero_left:
             </div>
             <div>
                 <div class="feature-title">Fast</div>
-                <div class="feature-sub">LOW-LATENCY</div>
+                <div class="feature-sub">&lt;200MS SLA</div>
             </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-# RIGHT CARD: "LIVE STUDIO" (Matching Reference Image 1)
+# RIGHT CARD: "LIVE STUDIO"
 with col_hero_right:
     st.markdown('<div class="hh-studio-card" id="live-studio">', unsafe_allow_html=True)
     st.markdown("""
@@ -515,7 +429,7 @@ with col_hero_right:
     # Top row controls
     col_c1, col_c2 = st.columns([1, 1.2])
     with col_c1:
-        st.write("") # vertical spacing
+        st.write("")
         if st.button("🎙️ SPEAK NOW", use_container_width=True):
             st.session_state.show_recorder = not st.session_state.show_recorder
 
@@ -531,7 +445,6 @@ with col_hero_right:
             index=0,
             key="voice_mode_select"
         )
-        # Map selected voice mode to strategy
         strategy_map = {
             "Sentence-Aware (Semantic)": "semantic_boundary",
             "Fixed-Size Overlap": "fixed_overlap",
@@ -540,25 +453,6 @@ with col_hero_right:
         }
         active_strat = strategy_map.get(voice_mode, "semantic_boundary")
         chunk_engine.set_strategy(active_strat)
-
-    # Google Gemini Universal Answering & Grounding Engine Configuration
-    with st.expander("✨ Universal Answering & Grounding Engine (Google Gemini API)", expanded=False):
-        current_gemini_key = os.getenv("GEMINI_API_KEY", "") or getattr(config, "GEMINI_API_KEY", "")
-        gemini_input_key = st.text_input(
-            "Google Gemini API Key (Saved in .env):",
-            value=current_gemini_key,
-            type="password",
-            placeholder="AIzaSy...",
-            help="Enables answering every question type (Grounded RAG + Open-Domain General Knowledge) using Google Gemini."
-        )
-        if gemini_input_key != current_gemini_key:
-            config.save_env_variable("GEMINI_API_KEY", gemini_input_key.strip())
-            st.rerun()
-
-        if current_gemini_key:
-            st.markdown('<span style="color:#00FF88; font-family: \'JetBrains Mono\', monospace; font-size:0.8rem;">🟢 Google Gemini Active (Universal Answering & Grounding Enabled)</span>', unsafe_allow_html=True)
-        else:
-            st.markdown('<span style="color:#FDB827; font-family: \'JetBrains Mono\', monospace; font-size:0.8rem;">🟡 Running in Fast Local Extractive Mode (Enter key above to enable Gemini)</span>', unsafe_allow_html=True)
 
     # Audio recorder trigger
     recorded_audio = None
@@ -584,14 +478,14 @@ with col_hero_right:
     with col_snd:
         send_clicked = st.button("Send", use_container_width=True)
 
-    # Preset Prompt Chips from Reference Screenshot
+    # Preset Prompt Chips
     st.markdown("<div style='margin-top: 15px;'>", unsafe_allow_html=True)
     chip_cols = st.columns(4)
     presets = [
         "What is a corporation?",
         "कॉर्पोरेशन क्या है?",
         "कैश फ्लो स्टेटमेंट क्या है?",
-        "परिवर्तक को परीक्षण पाइप से बदलने की लागत"
+        "What are CSE subjects?"
     ]
     for i, p in enumerate(presets):
         with chip_cols[i % 4]:
@@ -613,7 +507,7 @@ if query_to_run or has_audio:
     st.markdown("<br/>", unsafe_allow_html=True)
     st.markdown('<div class="hh-studio-card">', unsafe_allow_html=True)
     
-    with st.spinner("⚡ Executing Hacker House Goa Voice RAG Pipeline (<200ms Target)..."):
+    with st.spinner("⚡ Executing Voice RAG Pipeline (<200ms Target)..."):
         if has_audio:
             audio_bytes = recorded_audio.read()
             filename = getattr(recorded_audio, "name", "voice_input.wav")
@@ -622,17 +516,16 @@ if query_to_run or has_audio:
                 audio_filename=filename,
                 language_code="en-IN",
                 chunking_strategy=active_strat,
-                stt_provider="sarvam"
+                stt_provider="groq"
             )
         else:
-            # Detect language (Hindi vs English)
             is_hindi = any('\u0900' <= char <= '\u097F' for char in query_to_run)
             lang_code = "hi-IN" if is_hindi else "en-IN"
             req = VoiceRAGRequest(
                 prompt_text=query_to_run,
                 language_code=lang_code,
                 chunking_strategy=active_strat,
-                stt_provider="sarvam"
+                stt_provider="groq"
             )
 
         start_t = time.time()
@@ -702,11 +595,10 @@ if query_to_run or has_audio:
 
     with m4:
         synth_label = response.synthesizer
-        synth_color = "#00FF88" if "Gemini" in synth_label else "#00E5FF"
         st.markdown(f"""
         <div class="hh-metric-chip">
-            <div class="hh-metric-val" style="font-size: 0.95rem; color: {synth_color};">{synth_label}</div>
-            <div class="hh-metric-lbl">Synthesizer (STT: Sarvam)</div>
+            <div class="hh-metric-val" style="font-size: 0.95rem; color: #00FF88;">{synth_label}</div>
+            <div class="hh-metric-lbl">Active Synthesizer</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -717,7 +609,7 @@ if query_to_run or has_audio:
     ])
     st.dataframe(df_stages, use_container_width=True, hide_index=True)
 
-    # Social Share Card for Task #2
+    # Social Share Card
     st.markdown("<br/>", unsafe_allow_html=True)
     share_text = urllib.parse.quote(
         f"Just benchmarked our sub-200ms Voice-Enabled RAG pipeline for @hhgoa 2026 (Task #2)! "
@@ -742,21 +634,16 @@ if query_to_run or has_audio:
 # -------------------------------------------------------------------
 st.markdown("<br/><br/>", unsafe_allow_html=True)
 tabs = st.tabs([
-    "[01 // ⚙️ CHUNKING STRATEGIES LAB]",
+    "[01 // ✂️ CHUNKING STRATEGIES LAB]",
     "[02 // 📊 P50/P70/P100 LATENCY BENCHMARK]",
-    "[03 // 🛡️ HARNESS & GUARDRAILS]",
-    "[04 // 🌴 HH GOA TASK #2 SPECS]"
+    "[03 // 🛡️ HARNESS & GUARDRAILS]"
 ])
 
-# -------------------------------------------------------------------
 # TAB 1: Chunking Strategies Evaluation
-# -------------------------------------------------------------------
 with tabs[0]:
     st.markdown('<div class="hh-studio-card">', unsafe_allow_html=True)
-    st.markdown("### ⚙️ Multi-Strategy Engineered Chunking Benchmark")
+    st.markdown("### ✂️ Multi-Strategy Engineered Chunking Benchmark")
     st.markdown("""
-    *Hacker House Goa Task Requirement:* **"Retrieval that's actually engineered — multiple chunking strategies, not one naive split."**
-    
     Compare performance, chunk granularity, and execution throughput across all 4 chunking strategies evaluated on the **AI4Bharat MSMARCO-XI** corpus:
     """)
 
@@ -771,21 +658,21 @@ with tabs[0]:
     with c_s2:
         st.markdown("""
         <div class="hh-metric-chip">
-            <div style="color: #FDB827; font-weight:700;">2. Semantic Boundary</div>
+            <div style="color: #00FF88; font-weight:700;">2. Semantic Boundary</div>
             <div style="font-size:0.75rem; color:#9CA3AF; margin-top:4px;">Sentence and punctuation aware splitting.</div>
         </div>
         """, unsafe_allow_html=True)
     with c_s3:
         st.markdown("""
         <div class="hh-metric-chip">
-            <div style="color: #FDB827; font-weight:700;">3. Hierarchical</div>
+            <div style="color: #00E5FF; font-weight:700;">3. Hierarchical</div>
             <div style="font-size:0.75rem; color:#9CA3AF; margin-top:4px;">Parent-child context hierarchy indexing.</div>
         </div>
         """, unsafe_allow_html=True)
     with c_s4:
         st.markdown("""
         <div class="hh-metric-chip">
-            <div style="color: #FDB827; font-weight:700;">4. Metadata-Aware</div>
+            <div style="color: #FFAA00; font-weight:700;">4. Metadata-Aware</div>
             <div style="font-size:0.75rem; color:#9CA3AF; margin-top:4px;">Language & passage position payload embedding.</div>
         </div>
         """, unsafe_allow_html=True)
@@ -801,21 +688,17 @@ with tabs[0]:
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-# -------------------------------------------------------------------
 # TAB 2: Latency Percentile Analytics Suite
-# -------------------------------------------------------------------
 with tabs[1]:
     st.markdown('<div class="hh-studio-card">', unsafe_allow_html=True)
     st.markdown("### 📊 Latency Percentiles Telemetry (P50 / P70 / P100)")
     st.markdown("""
-    *Hacker House Goa Task Requirement:* **"P50 / P70 / P100 latency, benchmarked across real queries, not a lucky run."**
-    
-    Execute the automated micro-benchmark harness across 50+ real queries to evaluate statistical tail latencies and SLA compliance.
+    Execute the automated micro-benchmark harness across real queries to evaluate statistical tail latencies and SLA compliance.
     """)
 
     num_samples = st.slider("Select Benchmark Query Sample Size:", min_value=20, max_value=100, value=50, step=10)
 
-    if st.button("🚀 RUN 50+ QUERY LATENCY BENCHMARK SUITE"):
+    if st.button("🚀 RUN QUERY LATENCY BENCHMARK SUITE"):
         with st.spinner(f"Executing {num_samples} real queries through full RAG harness..."):
             analytics_data = run_benchmark_suite(num_samples=num_samples, strategy="semantic_boundary")
 
@@ -860,15 +743,10 @@ with tabs[1]:
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-# -------------------------------------------------------------------
 # TAB 3: Model Harness & Safety Guardrails
-# -------------------------------------------------------------------
 with tabs[2]:
     st.markdown('<div class="hh-studio-card">', unsafe_allow_html=True)
     st.markdown("### 🛡️ Production Model Harness & Safety Guardrails")
-    st.markdown("""
-    *Hacker House Goa Task Requirement:* **"Runs inside a real harness — retries, structured I/O, error recovery. Guardrails that know when not to answer."**
-    """)
 
     col_h1, col_h2 = st.columns(2)
     with col_h1:
@@ -881,7 +759,7 @@ with tabs[2]:
                     <ul>
                         <li><code>refine_query_tool</code>: Normalizes speech transcript entities.</li>
                         <li><code>metadata_filter_tool</code>: Language & passage constraints.</li>
-                        <li><code>synthesize_answer_tool</code>: Generates grounded response with citations.</li>
+                        <li><code>synthesize_answer_tool</code>: Groq & Gemini synthesis with citations.</li>
                     </ul>
                 </li>
                 <li><strong>Fault Tolerance & Retries</strong>: Exponential backoff on transient vector / API timeouts.</li>
@@ -904,51 +782,14 @@ with tabs[2]:
     st.markdown('</div>', unsafe_allow_html=True)
 
 # -------------------------------------------------------------------
-# TAB 4: Hacker House Goa Task #2 Specifications
-# -------------------------------------------------------------------
-with tabs[3]:
-    st.markdown('<div class="hh-studio-card">', unsafe_allow_html=True)
-    st.markdown("### 🌴 Hacker House Goa 2026 // Task #2 Specification")
-    st.markdown("""
-    > **"Speak a question, get a grounded answer. Build a full voice-to-answer RAG pipeline — transcription, engineered chunking, vector retrieval, and generation — wired together end to end, fast and guardrailed."**
-    """)
-    
-    st.markdown("""
-    #### ✦ Official Task #2 Requirements Checklist:
-    - [x] **Speak the question** — Real voice-to-text input powered by Sarvam AI (*Saaras v3*).
-    - [x] **Retrieval that's actually engineered** — 4 distinct chunking strategies (Fixed Overlap, Semantic Boundary, Hierarchical, Metadata-Aware).
-    - [x] **Blazing-fast sub-200ms pipeline** — In-memory SIMD float32 cosine vector retrieval.
-    - [x] **P50 / P70 / P100 latency analytics** — Statistical percentile measurement across 50+ real queries.
-    - [x] **Model Harness** — Structured Pydantic I/O schemas, automated tool calling, and retries.
-    - [x] **Guardrails** — Input safety, hallucination detection, and structured refusal reasoning.
-    - [x] **Hashtag Ready** — 1-click share to X with **#RAGInGoa** and **#FrameInGoa**.
-    
-    ---
-    
-    #### 📅 Event Details & Residency:
-    - **Dates:** October 28 – 31, 2026
-    - **Location:** Goa, India
-    - **Host:** 2:47 PM Studio
-    - **Community:** 500 Elite Builders & Hackers
-    - **Official Website:** [hhgoa.com](https://hhgoa.com/)
-    - **Devfolio Applications:** [hacker-house-goa-2026.devfolio.co](https://hacker-house-goa-2026.devfolio.co/)
-    """)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# -------------------------------------------------------------------
-# Branded Footer (2:47 PM Studio & HH Goa 2026)
+# Branded Footer
 # -------------------------------------------------------------------
 st.markdown("""
 <div class="hh-footer">
     <p>
-        <strong>HACKER <span style="background:#E53E3E;color:#FFF;padding:1px 5px;border-radius:3px;font-size:0.75em;">गोवा</span> HOUSE 2026</strong> · 2:47 PM STUDIO · GOA, INDIA · 28 – 31 OCT 2026<br/>
-        <span style="color: #FDB827;">✦ LESS NOISE. MORE SIGNAL. ✦</span><br/>
-        <a href="https://hhgoa.com/" target="_blank">hhgoa.com</a> | 
-        <a href="https://hacker-house-goa-2026.devfolio.co/" target="_blank">Devfolio</a> | 
-        <a href="https://x.com/247pmstudio" target="_blank">@247pmstudio</a> | 
+        <strong>HACKER <span style="background:#E53E3E;color:#FFF;padding:1px 5px;border-radius:3px;font-size:0.75em;">गोवा</span> HOUSE 2026</strong> · Task #2: Voice-Enabled RAG System · 
+        <span style="color: #FDB827;">⚡ Sub-200ms Latency SLA</span> · 
         <strong>#RAGInGoa</strong>
     </p>
 </div>
 """, unsafe_allow_html=True)
-
-

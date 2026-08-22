@@ -11,7 +11,7 @@ def test_api():
     assert res_root.status_code == 200, f"GET / failed: {res_root.status_code}"
     assert "HACKER" in res_root.text
     assert "VOICE-ENABLED RAG" in res_root.text
-    assert "CHUNKING STRATEGIES LAB" in res_root.text
+    assert "CHUNKING STRATEGIES LAB" in res_root.text.upper()
     assert "P50 / P70 / P100" in res_root.text
     print("[PASS] GET / HTML UI: 200 OK & Content Verified")
 
@@ -22,7 +22,7 @@ def test_api():
     assert "answer" in data
     assert "total_latency_ms" in data
     assert "grounding_score" in data
-    print(f"[PASS] POST /query: 200 OK (Latency: {data['total_latency_ms']}ms, Grounding: {data['grounding_score']})")
+    print(f"[PASS] POST /query: 200 OK (Latency: {data['total_latency_ms']}ms, Grounding: {data['grounding_score']}, Synth: {data.get('synthesizer')})")
 
     # 3. Test GET /chunking/compare
     res_chunk = client.get("/chunking/compare")
@@ -40,14 +40,14 @@ def test_api():
     assert "stage_breakdown" in bench_data
     print(f"[PASS] GET /benchmark: 200 OK (P50: {bench_data['overall_latency']['p50']}ms, SLA: {bench_data['sla_pass_rate_percent']}%)")
 
-    # 5. Test POST /set-gemini-key
-    orig_key = config.GEMINI_API_KEY
-    res_key = client.post("/set-gemini-key", json={"key": "test-key-123"})
-    assert res_key.status_code == 200
-    assert res_key.json()["status"] == "success"
-    print("[PASS] POST /set-gemini-key: 200 OK")
-    if orig_key:
-        config.save_env_variable("GEMINI_API_KEY", orig_key)
+    # 5. Test POST /set-groq-key and /set-gemini-key
+    orig_groq = config.GROQ_API_KEY
+    res_groq = client.post("/set-groq-key", json={"key": "gsk_test_123"})
+    assert res_groq.status_code == 200
+    assert res_groq.json()["status"] == "success"
+    print("[PASS] POST /set-groq-key: 200 OK")
+    if orig_groq:
+        config.save_env_variable("GROQ_API_KEY", orig_groq)
 
     # 6. Test POST /query for Open-Domain Query
     res_open = client.post("/query", json={"query_text": "What is the capital of France?", "language_code": "en-IN"})

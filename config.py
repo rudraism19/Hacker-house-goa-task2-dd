@@ -25,26 +25,39 @@ if ENV_FILE.exists():
 
 # Dataset Configuration
 DATASET_NAME = "ai4bharat/MSMARCO-XI"
-DEFAULT_LANGUAGE = "en"  # Default to English (options: 'en', 'hi', 'te', 'bn')
+DEFAULT_LANGUAGE = "en"  # Default to English (options: 'en', 'hi')
 MAX_DATASET_SAMPLES = 500
 
 # Speech-To-Text (STT) Settings
 STT_PROVIDER = os.getenv("STT_PROVIDER", "sarvam")
 SARVAM_API_KEY = os.getenv("SARVAM_API_KEY", "")
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 
 SARVAM_STT_URL = "https://api.sarvam.ai/speech-to-text"
 ELEVENLABS_STT_URL = "https://api.elevenlabs.io/v1/speech-to-text"
-DEFAULT_STT_LANG = "en-IN"  # Default English STT language code ('en-IN', 'hi-IN')
+GROQ_AUDIO_URL = "https://api.groq.com/openai/v1/audio/transcriptions"
+DEFAULT_STT_LANG = "en-IN"
 
-# LLM Synthesis (Google Gemini API for Universal Answering & High Accuracy)
+# Groq Ultra-Fast LLM Synthesis Configuration
+GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
+GROQ_CANDIDATE_MODELS = [
+    os.getenv("GROQ_MODEL", "openai/gpt-oss-20b"),
+    "openai/gpt-oss-20b",
+    "groq/compound-mini",
+    "qwen/qwen3.6-27b",
+    "openai/gpt-oss-120b"
+]
+GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
+
+# Google Gemini API Configuration (Secondary Fallback)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 GEMINI_CANDIDATE_MODELS = [
-    os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite"),
-    "gemini-3.5-flash-lite",
-    "gemini-3.5-flash",
-    "gemini-3.1-flash-lite",
+    os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
     "gemini-flash-latest"
 ]
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta"
@@ -72,7 +85,6 @@ def save_env_variable(key: str, value: str):
     
     with open(ENV_FILE, "w", encoding="utf-8") as f:
         f.writelines(env_lines)
-
 
 # Vector DB & Embeddings
 EMBEDDING_DIM = 256

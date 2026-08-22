@@ -1,17 +1,22 @@
 """
 Speech-to-Text (STT) Engine for Voice RAG System
-Supports Sarvam AI (Saaras v3), ElevenLabs STT API (Scribe v2), and Local Fast STT Engine.
+Supports Groq Whisper (whisper-large-v3-turbo), Sarvam AI (Saaras v3), ElevenLabs STT, and Local Fast STT.
 """
 
 import time
 import os
 import requests
 from typing import Dict, Any, Optional
-from config import SARVAM_STT_URL, ELEVENLABS_STT_URL, STT_PROVIDER, SARVAM_API_KEY
+from config import SARVAM_STT_URL, ELEVENLABS_STT_URL, GROQ_AUDIO_URL, STT_PROVIDER, SARVAM_API_KEY, GROQ_API_KEY
 
 class SpeechToTextEngine:
     def __init__(self, provider: str = STT_PROVIDER):
         self.provider = provider.lower()
+
+    @property
+    def groq_api_key(self) -> str:
+        key = os.getenv("GROQ_API_KEY", GROQ_API_KEY)
+        return key.strip() if key else ""
 
     @property
     def sarvam_api_key(self) -> str:
@@ -30,7 +35,7 @@ class SpeechToTextEngine:
         """
         start_time = time.perf_counter()
 
-        # If direct text prompt provided without audio file, use prompt text directly (0ms STT latency)
+        # Direct text prompt bypass
         if (not audio_data or len(audio_data) < 100) and prompt_hint:
             elapsed_ms = (time.perf_counter() - start_time) * 1000.0
             return {
@@ -41,13 +46,20 @@ class SpeechToTextEngine:
                 "latency_ms": round(elapsed_ms, 2)
             }
 
+        groq_key = self.groq_api_key
         sarvam_key = self.sarvam_api_key
         eleven_key = self.elevenlabs_api_key
 
-        if self.provider == "sarvam" and sarvam_key:
+        if self.provider == "groq" and groq_key:
+            result = self._transcribe_groq(audio_data or b"", filename, groq_key)
+        elif self.provider == "sarvam" and sarvam_key:
             result = self._transcribe_sarvam(audio_data or b"", filename, language_code, sarvam_key)
         elif self.provider == "elevenlabs" and eleven_key:
             result = self._transcribe_elevenlabs(audio_data or b"", filename, eleven_key)
+        elif groq_key:
+            result = self._transcribe_groq(audio_data or b"", filename, groq_key)
+        elif sarvam_key:
+            result = self._transcribe_sarvam(audio_data or b"", filename, language_code, sarvam_key)
         else:
             result = self._transcribe_local_fast(audio_data, prompt_hint)
 
@@ -55,11 +67,46 @@ class SpeechToTextEngine:
         result["latency_ms"] = round(elapsed_ms, 2)
         return result
 
+    def _transcribe_groq(self, audio_data: bytes, filename: str, api_key: str) -> Dict[str, Any]:
+        """
+        Groq Whisper (whisper-large-v3-turbo) ultra-fast STT integration.
+        """
+        try:
+            headers = {"Authorization": f"Bearer {api_key}"}
+            files = {"file": (filename or "voice.wav", audio_data, "audio/wav")}
+            data = {"model": "whisper-large-v3-turbo"}
+
+            response = requests.post(GROQ_AUDIO_URL, headers=headers, files=files, data=data, timeout=8.0)
+            if response.status_code == 200:
+                res_json = response.json()
+                transcript = res_json.get("text", "").strip()
+                return {
+                    "transcript": transcript,
+                    "provider": "Groq Whisper (whisper-large-v3-turbo)",
+                    "confidence": 0.99,
+                    "status": "success",
+                    "raw_response": res_json
+                }
+            else:
+                return {
+                    "transcript": f"Error from Groq STT ({response.status_code})",
+                    "provider": "Groq STT (Error)",
+                    "confidence": 0.0,
+                    "status": "error",
+                    "error_detail": response.text
+                }
+        except Exception as e:
+            return {
+                "transcript": f"Groq STT Connection Error: {str(e)}",
+                "provider": "Groq STT (Exception)",
+                "confidence": 0.0,
+                "status": "error",
+                "error_detail": str(e)
+            }
+
     def _transcribe_sarvam(self, audio_data: bytes, filename: str, language_code: str, api_key: str) -> Dict[str, Any]:
         """
         Sarvam AI Saaras v3 STT API integration.
-        Endpoint: https://api.sarvam.ai/speech-to-text
-        Header: api-subscription-key
         """
         try:
             headers = {"api-subscription-key": api_key}
@@ -78,8 +125,6 @@ class SpeechToTextEngine:
                     "raw_response": res_json
                 }
             else:
-                err_msg = f"Sarvam API Error ({response.status_code}): {response.text}"
-                print(f"[Sarvam STT Error] {err_msg}")
                 return {
                     "transcript": f"Error from Sarvam API ({response.status_code})",
                     "provider": "Sarvam AI (Error)",
@@ -88,14 +133,12 @@ class SpeechToTextEngine:
                     "error_detail": response.text
                 }
         except Exception as e:
-            err_str = str(e)
-            print(f"[Sarvam STT Exception] {err_str}")
             return {
-                "transcript": f"Connection Error: {err_str}",
+                "transcript": f"Connection Error: {str(e)}",
                 "provider": "Sarvam AI (Exception)",
                 "confidence": 0.0,
                 "status": "error",
-                "error_detail": err_str
+                "error_detail": str(e)
             }
 
     def _transcribe_elevenlabs(self, audio_data: bytes, filename: str, api_key: str) -> Dict[str, Any]:

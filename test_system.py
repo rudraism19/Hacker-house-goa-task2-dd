@@ -37,7 +37,7 @@ class TestVoiceRAGSystem(unittest.TestCase):
             self.assertIn("strategy", chunks[0].metadata)
 
     def test_vector_search_latency(self):
-        """Test vector search completes in < 15ms with top relevance score > 0.5 for valid query."""
+        """Test vector search completes in < 15ms with top relevance score > 0.4 for valid query."""
         res = self.vector_store.search("भारत की राजधानी क्या है?")
         self.assertLess(res["latency_ms"], 15.0)
         self.assertGreater(len(res["results"]), 0)
@@ -78,8 +78,8 @@ class TestVoiceRAGSystem(unittest.TestCase):
         self.assertLess(res.total_latency_ms, 200.0)
         self.assertTrue(res.met_sla_200ms)
 
-    def test_gemini_synthesis_integration(self):
-        """Test Gemini integration produces grounded answer when key is present."""
+    def test_llm_synthesis_integration(self):
+        """Test LLM (Groq / Gemini) integration produces grounded answer."""
         req = VoiceRAGRequest(
             prompt_text="भारत की राजधानी क्या है?",
             language_code="hi-IN",
@@ -91,8 +91,8 @@ class TestVoiceRAGSystem(unittest.TestCase):
         self.assertFalse(res.is_refused)
         self.assertGreater(len(res.answer), 0)
 
-    def test_gemini_general_knowledge_open_domain(self):
-        """Test Gemini integration answers out-of-dataset open-domain queries."""
+    def test_open_domain_general_knowledge(self):
+        """Test open-domain question answering for un-indexed general knowledge queries."""
         req = VoiceRAGRequest(
             prompt_text="What is the capital of France?",
             language_code="en-IN",
@@ -121,4 +121,3 @@ class TestVoiceRAGSystem(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
