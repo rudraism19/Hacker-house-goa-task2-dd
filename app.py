@@ -516,7 +516,8 @@ if query_to_run or has_audio:
                 audio_filename=filename,
                 language_code="en-IN",
                 chunking_strategy=active_strat,
-                stt_provider="groq"
+                stt_provider="local",
+                synthesizer_mode="auto"
             )
         else:
             is_hindi = any('\u0900' <= char <= '\u097F' for char in query_to_run)
@@ -525,7 +526,8 @@ if query_to_run or has_audio:
                 prompt_text=query_to_run,
                 language_code=lang_code,
                 chunking_strategy=active_strat,
-                stt_provider="groq"
+                stt_provider="local",
+                synthesizer_mode="auto"
             )
 
         start_t = time.time()

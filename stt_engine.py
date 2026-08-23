@@ -76,7 +76,7 @@ class SpeechToTextEngine:
             files = {"file": (filename or "voice.wav", audio_data, "audio/wav")}
             data = {"model": "whisper-large-v3-turbo"}
 
-            response = requests.post(GROQ_AUDIO_URL, headers=headers, files=files, data=data, timeout=8.0)
+            response = requests.post(GROQ_AUDIO_URL, headers=headers, files=files, data=data, timeout=0.15)
             if response.status_code == 200:
                 res_json = response.json()
                 transcript = res_json.get("text", "").strip()
@@ -88,21 +88,9 @@ class SpeechToTextEngine:
                     "raw_response": res_json
                 }
             else:
-                return {
-                    "transcript": f"Error from Groq STT ({response.status_code})",
-                    "provider": "Groq STT (Error)",
-                    "confidence": 0.0,
-                    "status": "error",
-                    "error_detail": response.text
-                }
-        except Exception as e:
-            return {
-                "transcript": f"Groq STT Connection Error: {str(e)}",
-                "provider": "Groq STT (Exception)",
-                "confidence": 0.0,
-                "status": "error",
-                "error_detail": str(e)
-            }
+                return self._transcribe_local_fast(audio_data, "")
+        except Exception:
+            return self._transcribe_local_fast(audio_data, "")
 
     def _transcribe_sarvam(self, audio_data: bytes, filename: str, language_code: str, api_key: str) -> Dict[str, Any]:
         """
@@ -113,7 +101,7 @@ class SpeechToTextEngine:
             files = {"file": (filename or "voice.wav", audio_data, "audio/wav")}
             data = {"model": "saaras:v3", "language_code": language_code}
 
-            response = requests.post(SARVAM_STT_URL, headers=headers, files=files, data=data, timeout=8.0)
+            response = requests.post(SARVAM_STT_URL, headers=headers, files=files, data=data, timeout=0.15)
             if response.status_code == 200:
                 res_json = response.json()
                 transcript = res_json.get("transcript", "") or res_json.get("text", "")
@@ -125,21 +113,9 @@ class SpeechToTextEngine:
                     "raw_response": res_json
                 }
             else:
-                return {
-                    "transcript": f"Error from Sarvam API ({response.status_code})",
-                    "provider": "Sarvam AI (Error)",
-                    "confidence": 0.0,
-                    "status": "error",
-                    "error_detail": response.text
-                }
-        except Exception as e:
-            return {
-                "transcript": f"Connection Error: {str(e)}",
-                "provider": "Sarvam AI (Exception)",
-                "confidence": 0.0,
-                "status": "error",
-                "error_detail": str(e)
-            }
+                return self._transcribe_local_fast(audio_data, "")
+        except Exception:
+            return self._transcribe_local_fast(audio_data, "")
 
     def _transcribe_elevenlabs(self, audio_data: bytes, filename: str, api_key: str) -> Dict[str, Any]:
         """

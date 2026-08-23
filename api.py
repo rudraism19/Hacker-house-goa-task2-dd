@@ -982,7 +982,7 @@ def index_landing_page():
                             query_text: query,
                             language_code: langCode,
                             chunking_strategy: strategy,
-                            stt_provider: 'groq'
+                            stt_provider: 'local'
                         })
                     });
 
@@ -1261,7 +1261,8 @@ class TextQueryRequest(BaseModel):
     query_text: str
     language_code: Optional[str] = "hi-IN"
     chunking_strategy: Optional[str] = "semantic_boundary"
-    stt_provider: Optional[str] = "groq"
+    stt_provider: Optional[str] = "local"
+    synthesizer_mode: Optional[str] = "auto"
 
 @app.post("/query", response_model=Dict[str, Any])
 @app.post("/api/query", response_model=Dict[str, Any])
@@ -1274,7 +1275,8 @@ def query_rag(req: TextQueryRequest):
         prompt_text=req.query_text,
         language_code=req.language_code,
         chunking_strategy=req.chunking_strategy,
-        stt_provider=req.stt_provider
+        stt_provider=req.stt_provider or "local",
+        synthesizer_mode=req.synthesizer_mode or "auto"
     )
     res: VoiceRAGResponse = orchestrator.run_pipeline(rag_req)
     return res.model_dump()
@@ -1285,7 +1287,7 @@ async def query_rag_audio(
     file: UploadFile = File(...),
     language_code: str = Form("hi-IN"),
     chunking_strategy: str = Form("semantic_boundary"),
-    stt_provider: str = Form("groq")
+    stt_provider: str = Form("local")
 ):
     """
     Processes audio upload file through Speech-To-Text and RAG pipeline.
@@ -1299,7 +1301,8 @@ async def query_rag_audio(
         audio_filename=file.filename or "audio.wav",
         language_code=language_code,
         chunking_strategy=chunking_strategy,
-        stt_provider=stt_provider
+        stt_provider=stt_provider,
+        synthesizer_mode="auto"
     )
     res: VoiceRAGResponse = orchestrator.run_pipeline(rag_req)
     return res.model_dump()
