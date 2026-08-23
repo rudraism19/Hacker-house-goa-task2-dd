@@ -292,9 +292,9 @@ class HarnessTools:
             user_content = f"User Question: {query}\n\nAnswer:"
             is_gen_knowledge = True
 
-        # --- OPTION 3: Google Gemini API (Fast Light Model with Strict 120ms SLA Timeout) ---
-        if gemini_api_key and mode in ("gemini",):
-            gemini_models = list(dict.fromkeys(getattr(config, "GEMINI_CANDIDATE_MODELS", ["gemini-2.5-flash", "gemini-2.5-flash-lite"])))
+        # --- OPTION 3: Google Gemini API (Fast Multilingual Model) ---
+        if gemini_api_key and mode in ("auto", "gemini"):
+            gemini_models = list(dict.fromkeys(getattr(config, "GEMINI_CANDIDATE_MODELS", ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"])))
             gemini_prompt = f"{system_instruction}\n\n{user_content}"
             payload = {
                 "contents": [{"parts": [{"text": gemini_prompt}]}],
@@ -304,11 +304,11 @@ class HarnessTools:
                 }
             }
 
-            for candidate_model in gemini_models[:1]:
+            for candidate_model in gemini_models:
                 try:
                     clean_model_name = candidate_model.replace("models/", "")
                     api_endpoint = f"{getattr(config, 'GEMINI_API_URL', 'https://generativelanguage.googleapis.com/v1beta')}/models/{clean_model_name}:generateContent?key={gemini_api_key}"
-                    resp = HTTP_SESSION.post(api_endpoint, json=payload, timeout=0.12)
+                    resp = HTTP_SESSION.post(api_endpoint, json=payload, timeout=3.5)
                     if resp.status_code == 200:
                         data = resp.json()
                         candidates = data.get("candidates", [])
@@ -330,12 +330,12 @@ class HarnessTools:
                                         "latency_ms": round((time.perf_counter() - t0) * 1000.0, 2)
                                     }
                 except Exception:
-                    pass
+                    continue
 
-        # --- OPTION 4: Groq API (Secondary Fast Cloud Model with Strict 120ms SLA Timeout) ---
-        if groq_api_key and mode in ("groq",):
-            groq_models = list(dict.fromkeys(getattr(config, "GROQ_CANDIDATE_MODELS", ["groq/compound-mini", "openai/gpt-oss-20b"])))
-            for model_id in groq_models[:1]:
+        # --- OPTION 4: Groq API (Secondary Fast Cloud Model) ---
+        if groq_api_key and mode in ("auto", "groq"):
+            groq_models = list(dict.fromkeys(getattr(config, "GROQ_CANDIDATE_MODELS", ["openai/gpt-oss-20b", "groq/compound-mini", "allam-2-7b", "qwen/qwen3.6-27b"])))
+            for model_id in groq_models:
                 try:
                     payload = {
                         "model": model_id,
@@ -350,7 +350,7 @@ class HarnessTools:
                         "Authorization": f"Bearer {groq_api_key}",
                         "Content-Type": "application/json"
                     }
-                    resp = HTTP_SESSION.post(getattr(config, "GROQ_API_URL", "https://api.groq.com/openai/v1/chat/completions"), headers=headers, json=payload, timeout=0.12)
+                    resp = HTTP_SESSION.post(getattr(config, "GROQ_API_URL", "https://api.groq.com/openai/v1/chat/completions"), headers=headers, json=payload, timeout=3.5)
                     if resp.status_code == 200:
                         data = resp.json()
                         choices = data.get("choices", [])
@@ -370,7 +370,7 @@ class HarnessTools:
                                     "latency_ms": round((time.perf_counter() - t0) * 1000.0, 2)
                                 }
                 except Exception:
-                    pass
+                    continue
 
         # --- OPTION 5: Fallback Local Extractive Synthesis ---
         if not retrieved_chunks:

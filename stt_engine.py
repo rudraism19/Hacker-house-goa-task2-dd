@@ -76,7 +76,7 @@ class SpeechToTextEngine:
             files = {"file": (filename or "voice.wav", audio_data, "audio/wav")}
             data = {"model": "whisper-large-v3-turbo"}
 
-            response = requests.post(GROQ_AUDIO_URL, headers=headers, files=files, data=data, timeout=0.15)
+            response = requests.post(GROQ_AUDIO_URL, headers=headers, files=files, data=data, timeout=8.0)
             if response.status_code == 200:
                 res_json = response.json()
                 transcript = res_json.get("text", "").strip()
@@ -101,7 +101,7 @@ class SpeechToTextEngine:
             files = {"file": (filename or "voice.wav", audio_data, "audio/wav")}
             data = {"model": "saaras:v3", "language_code": language_code}
 
-            response = requests.post(SARVAM_STT_URL, headers=headers, files=files, data=data, timeout=0.15)
+            response = requests.post(SARVAM_STT_URL, headers=headers, files=files, data=data, timeout=8.0)
             if response.status_code == 200:
                 res_json = response.json()
                 transcript = res_json.get("transcript", "") or res_json.get("text", "")
